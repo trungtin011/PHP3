@@ -18,7 +18,9 @@
             <form action="{{ route('admin.products.index') }}" method="GET" class="d-flex">
                 <input type="text" name="search" class="form-control me-2 shadow-sm" 
                     placeholder="Search products..." id="search-input"
+                    value="{{ request('search') }}" {{-- Preserve search query --}}
                     style="border-radius: 10px; padding: 12px; border: 1px solid #e0e4e9;">
+                <button type="submit" class="btn btn-primary shadow-sm" style="border-radius: 10px;">Search</button>
             </form>
             <ul class="search-results list-unstyled mt-2 position-absolute bg-white border rounded-3 shadow-lg w-100" 
                 id="search-results" style="z-index: 1000; display: none; max-height: 400px; overflow-y: auto;">
@@ -37,11 +39,15 @@
                 <thead style="background: linear-gradient(135deg, #1f2a44 0%, #141b2d 100%); color: white;">
                     <tr>
                         <th style="padding: 15px;">ID</th>
-                        <th style="padding: 15px;">Image</th>
+                        <th style="padding: 15px;">Main Image</th>
                         <th style="padding: 15px;">Title</th>
+                        <th style="padding: 15px;">Description</th>
                         <th style="padding: 15px;">Price</th>
                         <th style="padding: 15px;">Stock</th>
                         <th style="padding: 15px;">Status</th>
+                        <th style="padding: 15px;">Category</th>
+                        <th style="padding: 15px;">Brand</th>
+                        <th style="padding: 15px;">Additional Images</th>
                         <th style="padding: 15px;">Actions</th>
                     </tr>
                 </thead>
@@ -50,14 +56,15 @@
                         <tr style="transition: all 0.3s ease;" class="shadow-sm-on-hover">
                             <td>{{ $product->id }}</td>
                             <td>
-                                @if($product->image)
-                                    <img src="{{ $product->image }}" alt="{{ $product->title }}" 
+                                @if($product->main_image)
+                                    <img src="{{ asset('storage/' . $product->main_image) }}" alt="{{ $product->title }}" 
                                         class="img-thumbnail rounded" style="width: 80px; height: 80px; object-fit: cover; border: none;">
                                 @else
                                     <span class="text-muted">No Image</span>
                                 @endif
                             </td>
                             <td style="font-weight: 500;">{{ $product->title }}</td>
+                            <td>{{ Str::limit($product->description, 50, '...') }}</td>
                             <td>{{ number_format($product->price, 0, ',', '.') }} đ</td>
                             <td>{{ $product->stock }}</td>
                             <td>
@@ -67,6 +74,18 @@
                                     <span class="badge bg-danger">Out of Stock</span>
                                 @else
                                     <span class="badge bg-secondary">Unknown</span>
+                                @endif
+                            </td>
+                            <td>{{ $product->category->name ?? 'No Category' }}</td>
+                            <td>{{ $product->brand->name ?? 'No Brand' }}</td>
+                            <td>
+                                @if($product->additional_images)
+                                    @foreach(json_decode($product->additional_images, true) as $image)
+                                        <img src="{{ asset('storage/' . $image) }}" alt="Additional Image" 
+                                            class="img-thumbnail mt-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                    @endforeach
+                                @else
+                                    <span class="text-muted">No Additional Images</span>
                                 @endif
                             </td>
                             <td>
@@ -91,6 +110,7 @@
             </table>
         </div>
 
+        <!-- Pagination Links -->
         <div class="d-flex justify-content-center mt-4">
             {{ $products->links('pagination::bootstrap-5') }}
         </div>
@@ -150,7 +170,7 @@
                         li.style.transition = 'all 0.3s ease';
 
                         const img = document.createElement('img');
-                        img.src = product.image || 'https://via.placeholder.com/50';
+                        img.src = product.main_image ? `{{ asset('storage') }}/${product.main_image}` : 'https://via.placeholder.com/50';
                         img.alt = product.title;
                         img.style.width = '60px';
                         img.style.height = '60px';

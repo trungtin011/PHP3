@@ -16,6 +16,8 @@
             <tr>
                 <th>ID</th>
                 <th>Name</th>
+                <th>Slug</th>
+                <th>Icon</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -23,7 +25,20 @@
             @foreach ($categories as $category)
                 <tr>
                     <td>{{ $category->id }}</td>
-                    <td>{{ $category->name }}</td>
+                    <td>
+                        {{ $category->name }}
+                        @if ($category->parent)
+                            <small>(Child of {{ $category->parent->name }})</small>
+                        @endif
+                    </td>
+                    <td>{{ $category->slug }}</td>
+                    <td>
+                        @if ($category->icon)
+                            <i class="{{ $category->icon }} text-blue-500 text-lg"></i>
+                        @else
+                            <span class="text-muted">No Icon</span>
+                        @endif
+                    </td>
                     <td>
                         <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-warning btn-sm">Edit</a>
                         <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline">

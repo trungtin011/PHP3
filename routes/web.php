@@ -1,11 +1,12 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\BrandController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\User\ProfileController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\User\ProductController as UserProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -15,7 +16,13 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::get('/', function () {
-    return view('user.welcome'); 
+    $categories = \App\Models\Category::with('children')->whereNull('parent_id')->get();
+    return view('user.welcome', compact('categories'));
+})->name('home');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
 Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
@@ -23,13 +30,13 @@ Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
         return view('admin.dashboard'); 
     })->name('dashboard');
 
-    Route::get('/products', [ProductController::class, 'index'])->name('admin.products.index');
-    Route::get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');
-    Route::post('/products', [ProductController::class, 'store'])->name('admin.products.store');
-    Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
-    Route::put('/products/{id}', [ProductController::class, 'update'])->name('admin.products.update');
-    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
-    Route::get('/products/search', [ProductController::class, 'search'])->name('admin.products.search');
+    Route::get('/products', [AdminProductController::class, 'index'])->name('admin.products.index');
+    Route::get('/products/create', [AdminProductController::class, 'create'])->name('admin.products.create');
+    Route::post('/products', [AdminProductController::class, 'store'])->name('admin.products.store');
+    Route::get('/products/{id}/edit', [AdminProductController::class, 'edit'])->name('admin.products.edit');
+    Route::put('/products/{id}', [AdminProductController::class, 'update'])->name('admin.products.update');
+    Route::delete('/products/{id}', [AdminProductController::class, 'destroy'])->name('admin.products.destroy');
+    Route::get('/admin/products/search', [AdminProductController::class, 'search'])->name('admin.products.search');
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('admin.categories.index');
     Route::get('/categories/create', [CategoryController::class, 'create'])->name('admin.categories.create');
@@ -37,6 +44,7 @@ Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
     Route::get('/categories/{id}/edit', [CategoryController::class, 'edit'])->name('admin.categories.edit');
     Route::put('/categories/{id}', [CategoryController::class, 'update'])->name('admin.categories.update');
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->name('admin.categories.destroy');
+    Route::get('/categories/hierarchy', [CategoryController::class, 'showHierarchy'])->name('admin.categories.hierarchy');
 
     Route::get('/brands', [BrandController::class, 'index'])->name('admin.brands.index');
     Route::get('/brands/create', [BrandController::class, 'create'])->name('admin.brands.create');
@@ -55,6 +63,7 @@ Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
     ]);
 });
 
-Route::get('/products', [ProductController::class, 'list'])->name('products.list');
-Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/user/products', [ProductController::class, 'list'])->name('user.products.list');
+Route::get('/products', [UserProductController::class, 'list'])->name('products.list');
+Route::get('/products/{slug}', [UserProductController::class, 'show'])->name('products.show');
 

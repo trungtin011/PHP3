@@ -14,7 +14,7 @@
             </ul>
         </div>
     @endif
-    <form action="{{ route('admin.products.store') }}" method="POST">
+    <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="mb-3">
             <label for="title" class="form-label">Title</label>
@@ -62,10 +62,36 @@
             </select>
         </div>
         <div class="mb-3">
-            <label for="image" class="form-label">Image URL</label>
-            <input type="url" class="form-control" id="image" name="image">
+            <label for="main_image" class="form-label">Main Image</label>
+            <input type="file" class="form-control" id="main_image" name="main_image" accept="image/*" onchange="previewMainImage(event)">
+            <img id="main_image_preview" class="img-thumbnail mt-2" style="width: 150px; display: none;">
+        </div>
+        <div class="mb-3">
+            <label for="additional_images" class="form-label">Additional Images</label>
+            <input type="file" class="form-control" id="additional_images" name="additional_images[]" accept="image/*" multiple onchange="previewAdditionalImages(event)">
+            <div id="additional_images_preview" class="mt-2"></div>
         </div>
         <button type="submit" class="btn btn-primary">Add Product</button>
     </form>
 </div>
+
+<script>
+    function previewMainImage(event) {
+        const preview = document.getElementById('main_image_preview');
+        preview.src = URL.createObjectURL(event.target.files[0]);
+        preview.style.display = 'block';
+    }
+
+    function previewAdditionalImages(event) {
+        const previewContainer = document.getElementById('additional_images_preview');
+        previewContainer.innerHTML = '';
+        Array.from(event.target.files).forEach(file => {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.classList.add('img-thumbnail', 'me-2', 'mb-2');
+            img.style.width = '100px';
+            previewContainer.appendChild(img);
+        });
+    }
+</script>
 @endsection

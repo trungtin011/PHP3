@@ -13,10 +13,20 @@ class Category extends Model
     protected $primaryKey = 'id';
     public $timestamps = true;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'parent_id', 'slug', 'icon'];
 
     public function products()
     {
         return $this->hasMany(Product::class, 'category_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(Category::class, 'parent_id');
     }
 }

@@ -5,7 +5,7 @@
 @section('content')
 <div class="container">
     <h2 class="text-center mb-4">Edit Product</h2>
-    <form action="{{ route('admin.products.update', $product->id) }}" method="POST">
+    <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
         <div class="mb-3">
@@ -58,10 +58,46 @@
             </select>
         </div>
         <div class="mb-3">
-            <label for="image" class="form-label">Image URL</label>
-            <input type="url" class="form-control" id="image" name="image" value="{{ $product->image }}">
+            <label for="main_image" class="form-label">Main Image</label>
+            <input type="file" class="form-control" id="main_image" name="main_image" accept="image/*" onchange="previewMainImage(event)">
+            @if($product->main_image)
+                <img id="main_image_preview" src="{{ asset('storage/' . $product->main_image) }}" class="img-thumbnail mt-2" style="width: 150px;">
+            @else
+                <img id="main_image_preview" class="img-thumbnail mt-2" style="width: 150px; display: none;">
+            @endif
+        </div>
+        <div class="mb-3">
+            <label for="additional_images" class="form-label">Additional Images</label>
+            <input type="file" class="form-control" id="additional_images" name="additional_images[]" accept="image/*" multiple onchange="previewAdditionalImages(event)">
+            <div id="additional_images_preview" class="mt-2">
+                @if($product->additional_images)
+                    @foreach(json_decode($product->additional_images, true) as $image)
+                        <img src="{{ asset('storage/' . $image) }}" class="img-thumbnail me-2 mb-2" style="width: 100px;">
+                    @endforeach
+                @endif
+            </div>
         </div>
         <button type="submit" class="btn btn-primary">Update Product</button>
     </form>
 </div>
+
+<script>
+    function previewMainImage(event) {
+        const preview = document.getElementById('main_image_preview');
+        preview.src = URL.createObjectURL(event.target.files[0]);
+        preview.style.display = 'block';
+    }
+
+    function previewAdditionalImages(event) {
+        const previewContainer = document.getElementById('additional_images_preview');
+        previewContainer.innerHTML = '';
+        Array.from(event.target.files).forEach(file => {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.classList.add('img-thumbnail', 'me-2', 'mb-2');
+            img.style.width = '100px';
+            previewContainer.appendChild(img);
+        });
+    }
+</script>
 @endsection

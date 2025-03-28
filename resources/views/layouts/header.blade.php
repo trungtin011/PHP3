@@ -5,115 +5,235 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MagicShop</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
     <style>
+        :root {
+            --primary: #D4AF37;
+            --primary-hover: #E6C774;
+            --dark-bg: #1A1A1A;
+            --dark-secondary: #2D2D2D;
+            --text-light: #F3F4F6;
+        }
+
         .bg-dark-gradient {
-            background: linear-gradient(90deg, #1a1a1a, #2d2d2d);
-            background-size: 200% 200%;
-            animation: gradientFlow 8s ease infinite;
+            background: linear-gradient(120deg, var(--dark-bg) 0%, var(--dark-secondary) 100%);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
         }
+
         .text-gradient {
-            background: linear-gradient(45deg, #d4af37, #e6c774);
+            background: linear-gradient(45deg, var(--primary), var(--primary-hover));
+            -webkit-background-clip: text;
+            background-clip: text;
             color: transparent;
+            font-weight: 700;
         }
-        .hover-glow:hover {
-            color: #e6c774;
-            text-shadow: 0 0 5px rgba(212, 175, 55, 0.5);
-            transition: all 0.2s ease;
+
+        .nav-link {
+            position: relative;
+            padding-bottom: 4px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 50%;
+            background: var(--primary);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
         .btn {
-            padding: 5px 14px;
-            border: 1px solid #d4af37;
-            border-radius: 16px;
-            transition: all 0.2s ease;
-            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
-        .btn:hover {
-            background: #d4af37;
-            color: #1a1a1a;
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--dark-bg);
+            border: none;
         }
-        .btn-login {
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-outline {
+            border: 1px solid var(--primary);
+            color: var(--text-light);
             background: transparent;
         }
-        .btn-register {
-            background: #d4af37;
-            color: #1a1a1a;
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: var(--dark-bg);
+            border-color: var(--primary);
         }
-        .btn-register:hover {
-            background: #e6c774;
-            color: #1a1a1a;
-        }
+
         .search-bar {
-            background: #333;
+            background: rgba(255, 255, 255, 0.1);
             border: none;
-            border-radius: 16px;
-            padding: 7px 14px;
-            width: 200px;
-            color: white;
-            font-size: 1.1rem;
+            border-radius: 20px;
+            padding: 8px 16px;
+            width: 250px;
+            color: var(--text-light);
+            transition: all 0.3s ease;
         }
+
+        .search-bar:focus {
+            outline: none;
+            width: 300px;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        .dropdown-toggle {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-toggle:hover {
+            color: var(--primary);
+        }
+
         .dropdown-menu {
-            background: #2d2d2d;
-            border: none;
+            background: var(--dark-secondary);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            min-width: 180px;
+            animation: dropdownFade 0.25s ease-out;
+            transform-origin: top right;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            color: var(--text-light);
             border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
+
         .dropdown-item:hover {
-            background: #d4af37;
-            color: #1a1a1a;
+            background: var(--primary);
+            color: var(--dark-bg);
+            transform: translateX(4px);
         }
-        @keyframes gradientFlow {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+
+        .dropdown-item i {
+            width: 16px;
+            text-align: center;
+        }
+
+        .location-btn {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .location-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes dropdownFade {
+            from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
     </style>
 </head>
 <body>
-<header class="bg-dark-gradient text-white py-3 sticky-top">
-    <div class="container flex items-center justify-between">
-        <!-- Left -->
-        <div class="flex items-center space-x-4">
-            <a href="/" class="flex items-center hover-glow">
-                <span class="text-2xl font-bold ml-2"><span class="text-gradient">Magic</span>Shop</span>
-            </a>
-            <button class="btn text-lg">Danh mục</button>
-            <div class="flex items-center space-x-1 bg-gray-700 px-3 py-1 rounded">
-                <i class="fas fa-map-marker-alt"></i>
-                <span class="text-base">HCM</span>
-                <i class="fas fa-caret-down"></i>
+<header class="bg-dark-gradient text-white py-4 sticky-top">
+    <div class="container mx-auto px-4 flex items-center justify-between">
+        <!-- Left Section -->
+        <div class="flex items-center space-x-6">
+            <a href="/" class="flex items-center space-x-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-gradient text-2xl"></i>
+                <span class="text-2xl font-bold"><span class="text-gradient">Magic</span>Shop</span>
+    </a>
+            <div class="location-btn flex items-center space-x-2 text-base">
+                <i class="fa-solid fa-map-marker-alt"></i>
+                <span>HCM</span>
+                <i class="fa-solid fa-chevron-down text-sm"></i>
             </div>
-            <nav class="flex space-x-4">
-                <a href="/products" class="hover-glow text-base">Products</a>
-                <a href="/index" class="hover-glow text-base">About</a>
-            </nav>
         </div>
 
-        <!-- Right -->
-        <div class="flex items-center space-x-7">
-            <input type="text" class="search-bar" placeholder="Tìm kiếm">
-            <a href="#" class="hover-glow text-base"><i class="fas fa-phone-alt mr-1"></i>1800.2097</a>
-            <a href="#" class="hover-glow text-base"><i class="fas fa-map-marker-alt mr-1"></i>Cửa hàng</a>
-            <a href="#" class="hover-glow text-base"><i class="fas fa-truck mr-1"></i>Đơn hàng</a>
-            <a href="#" class="hover-glow text-base"><i class="fas fa-shopping-bag mr-1"></i>Giỏ hàng</a>
+        <!-- Right Section -->
+        <div class="flex items-center space-x-6">
+            <input type="text" class="search-bar" placeholder="Tìm kiếm sản phẩm...">
+            <a href="#" class="nav-link text-base hidden lg:block">
+                <i class="fa-solid fa-phone-alt mr-1"></i>1800.2097
+            </a>
+            <a href="#" class="nav-link text-base hidden lg:block">
+                <i class="fa-solid fa-store mr-1"></i>Cửa hàng
+            </a>
+            <a href="#" class="nav-link text-base">
+                <i class="fa-solid fa-truck mr-1"></i>Đơn hàng
+            </a>
+            <a href="#" class="nav-link text-base">
+                <i class="fa-solid fa-shopping-bag mr-1"></i>Giỏ hàng
+            </a>
+            <nav class="hidden md:flex space-x-6">
+                <a href="/products" class="nav-link text-base">
+                    <i class="fa-solid fa-box-open mr-1"></i>Products
+                </a>
+                <a href="/index" class="nav-link text-base">
+                    <i class="fa-solid fa-info-circle mr-1"></i>About
+                </a>
+            </nav>
             @auth
                 <div class="relative group">
-                    <a href="#" class="hover-glow text-base"><i class="fas fa-user mr-1"></i>{{ Auth::user()->name }}</a>
-                    <div class="absolute right-0 hidden group-hover:block dropdown-menu p-2">
+                    <div class="nav-link text-base dropdown-toggle">
+                        <i class="fa-solid fa-user mr-1"></i>{{ Auth::user()->name }}
+                        <i class="fa-solid fa-chevron-down text-sm ml-1"></i>
+                    </div>
+                    <div class="absolute right-0 hidden group-hover:block dropdown-menu">
                         @if (Auth::user()->role === 'admin')
-                            <a href="{{ route('dashboard') }}" class="block text-white hover:bg-yellow-600 p-1 text-base">Trang quản trị</a>
+                            <a href="{{ route('dashboard') }}" class="dropdown-item">
+                                <i class="fa-solid fa-tachometer-alt"></i> Trang quản trị
+                            </a>
                         @else
-                            <a href="{{ route('profile.edit') }}" class="block text-white hover:bg-yellow-600 p-1 text-base">Profile</a>
+                            <a href="{{ route('profile.edit') }}" class="dropdown-item">
+                                <i class="fa-solid fa-user-gear"></i> Profile
+                            </a>
                         @endif
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="block text-white hover:bg-yellow-600 p-1 text-base w-full text-left">Đăng xuất</button>
+                            <button type="submit" class="dropdown-item w-full text-left">
+                                <i class="fa-solid fa-sign-out-alt"></i> Đăng xuất
+                            </button>
                         </form>
                     </div>
                 </div>
             @else
-                <a href="{{ route('login') }}" class="btn btn-login text-base">Đăng nhập</a>
+                <a href="{{ route('login') }}" class="btn btn-outline text-base">Đăng nhập</a>
                 @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="btn btn-register text-base">Đăng ký</a>
+                    <a href="{{ route('register') }}" class="btn btn-primary text-base">Đăng ký</a>
                 @endif
             @endauth
         </div>

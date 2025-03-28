@@ -37,68 +37,57 @@
             color: #3b82f6;
             transform: translateY(-2px);
         }
+        /* Thêm viền và giới hạn sidebar */
+        .sidebar {
+            border: 1px solid #e5e7eb; /* Viền xám nhạt */
+            border-radius: 8px; /* Bo góc nhẹ */
+            max-height: 80vh; /* Giới hạn chiều cao tối đa */
+            overflow-y: auto; /* Thanh cuộn nếu cần */
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans antialiased">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <div class="w-1/5 bg-white p-6 shadow-lg">
+        <div class="w-1/5 bg-white p-6 shadow-lg h-screen sidebar">
             <ul class="space-y-3">
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-mobile-alt text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Điện thoại, Tablet</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-laptop text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Laptop</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-headphones-alt text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Âm thanh</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-camera text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Đồng hồ, Camera</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-blender text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Đồ gia dụng</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-plug text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Phụ kiện</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-desktop text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">PC, Màn hình, Máy in</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-tv text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">TiVi</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-sync-alt text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Thu cũ đổi mới</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-box-open text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Hàng cũ</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-tags text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Khuyến mãi</span>
-                </li>
-                <li class="flex items-center space-x-3 sidebar-item p-3 rounded-lg">
-                    <i class="fas fa-newspaper text-blue-500 text-lg"></i>
-                    <span class="text-gray-700 font-medium">Tin công nghệ</span>
-                </li>
+                @foreach ($categories as $parent)
+                    <li class="sidebar-item p-3 rounded-lg">
+                        <div class="flex items-center justify-between cursor-pointer" onclick="toggleCategory(this)">
+                            <div class="flex items-center space-x-3">
+                                @if ($parent->icon)
+                                    <i class="{{ $parent->icon }} text-blue-500 text-lg"></i>
+                                @else
+                                    <i class="fas fa-folder text-blue-500 text-lg"></i>
+                                @endif
+                                <span class="text-gray-700 font-medium">{{ $parent->name }}</span>
+                            </div>
+                            @if ($parent->children->isNotEmpty())
+                                <i class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-300"></i>
+                            @endif
+                        </div>
+                        @if ($parent->children->isNotEmpty())
+                            <ul class="ml-6 space-y-2 hidden mt-2">
+                                @foreach ($parent->children as $child)
+                                    <li class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100">
+                                        @if ($child->icon)
+                                            <i class="{{ $child->icon }} text-blue-400 text-sm"></i>
+                                        @else
+                                            <i class="fas fa-folder text-blue-400 text-sm"></i>
+                                        @endif
+                                        <span class="text-gray-600 font-medium">{{ $child->name }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </li>
+                @endforeach
             </ul>
         </div>
 
-        <!-- Main Content -->
+        <!-- Main Content (giữ nguyên) -->
         <div class="w-4/5 p-6">
             <div class="flex space-x-6">
-                <!-- Main Banner -->
                 <div class="w-2/3 bg-white p-6 rounded-xl banner-shadow">
                     <div class="flex justify-between items-center">
                         <div class="space-y-3">
@@ -116,13 +105,11 @@
                                     <p class="text-blue-500 font-semibold">99k</p>
                                 </div>
                             </div>
-                            <pdfd class="text-sm text-gray-600">S-Teacher | S-Student Giảm thêm 6%</p>
+                            <p class="text-sm text-gray-600">S-Teacher | S-Student Giảm thêm 6%</p>
                             <button class="btn-primary text-white px-6 py-2 rounded-full font-medium">MUA NGAY</button>
                         </div>
                     </div>
                 </div>
-
-                <!-- Side Banners -->
                 <div class="w-1/3 space-y-6">
                     <div class="bg-white p-6 rounded-xl banner-shadow">
                         <img alt="Samsung Logo" height="50" src="https://storage.googleapis.com/a1aa/image/ChC0I_y3Q4c33Duy6hnpIT-fXbsjCVA13IHUZFH0Z7o.jpg" width="100" class="mb-2"/>
@@ -147,8 +134,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Bottom Navigation -->
             <div class="flex justify-between mt-6 bg-white p-6 rounded-xl shadow-lg">
                 <a href="#" class="bottom-nav-item text-sm text-gray-700 font-medium">IPHONE 16 PRO MAX <span class="text-red-500">Tặng AirPods 4</span></a>
                 <a href="#" class="bottom-nav-item text-sm text-gray-700 font-medium">OPPO FIND N5 <span class="text-red-500">Đặt gạch ngay</span></a>
@@ -158,6 +143,18 @@
             </div>
         </div>
     </div>
+
+    <!-- JavaScript for toggling -->
+    <script>
+        function toggleCategory(element) {
+            const childList = element.nextElementSibling;
+            const chevron = element.querySelector('.fa-chevron-down');
+            if (childList) {
+                childList.classList.toggle('hidden');
+                chevron.classList.toggle('rotate-180');
+            }
+        }
+    </script>
 </body>
 </html>
 @endsection

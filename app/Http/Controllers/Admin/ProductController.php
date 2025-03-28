@@ -1,18 +1,27 @@
 <?php
+namespace App\Http\Controllers\Admin;
 
-namespace App\Http\Controllers;
-
+use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Brand;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with(['category', 'brand'])->paginate(10);
+        $query = Product::with(['category', 'brand']);
+
+        if ($request->has('search') && $request->search) {
+            $query->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('description', 'like', '%' . $request->search . '%');
+        }
+
+        $products = $query->paginate(6);
+
         return view('admin.products.index', compact('products'));
     }
 
@@ -25,21 +34,37 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        if (!Storage::exists('public/views/images')) {
+            Storage::makeDirectory('public/views/images');
+        }
+
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
-            'status' => 'required|in:in_stock,out_of_stock', // Updated to match database values
+            'status' => 'required|in:in_stock,out_of_stock',
             'category_id' => 'nullable|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
-            'image' => 'nullable|url|max:255',
             'slug' => 'nullable|string|max:255|unique:products,slug',
+            'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'additional_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Generate slug if not provided
         if (empty($validatedData['slug'])) {
             $validatedData['slug'] = Str::slug($validatedData['title']);
+        }
+
+        if ($request->hasFile('main_image')) {
+            $validatedData['main_image'] = $request->file('main_image')->store('views/images', 'public');
+        }
+
+        if ($request->hasFile('additional_images')) {
+            $additionalImages = [];
+            foreach ($request->file('additional_images') as $image) {
+                $additionalImages[] = $image->store('views/images', 'public');
+            }
+            $validatedData['additional_images'] = json_encode($additionalImages);
         }
 
         Product::create($validatedData);
@@ -57,24 +82,37 @@ class ProductController extends Controller
 
     public function update(Request $request, $id)
     {
+        if (!Storage::exists('public/views/images')) {
+            Storage::makeDirectory('public/views/images');
+        }
+
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
-            'status' => 'required|in:in_stock,out_of_stock', // Updated to match database values
+            'status' => 'required|in:in_stock,out_of_stock',
             'category_id' => 'nullable|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
-            'image' => 'nullable|url|max:255',
             'slug' => 'nullable|string|max:255|unique:products,slug,' . $id,
+            'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'additional_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Generate slug if not provided
-        if (empty($validatedData['slug'])) {
-            $validatedData['slug'] = Str::slug($validatedData['title']);
+        $product = Product::findOrFail($id);
+
+        if ($request->hasFile('main_image')) {
+            $validatedData['main_image'] = $request->file('main_image')->store('views/images', 'public');
         }
 
-        $product = Product::findOrFail($id);
+        if ($request->hasFile('additional_images')) {
+            $additionalImages = [];
+            foreach ($request->file('additional_images') as $image) {
+                $additionalImages[] = $image->store('views/images', 'public');
+            }
+            $validatedData['additional_images'] = json_encode($additionalImages);
+        }
+
         $product->update($validatedData);
 
         return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
