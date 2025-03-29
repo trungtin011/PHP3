@@ -175,7 +175,7 @@
             <a href="/" class="flex items-center space-x-2">
                 <i class="fa-solid fa-wand-magic-sparkles text-gradient text-2xl"></i>
                 <span class="text-2xl font-bold"><span class="text-gradient">Magic</span>Shop</span>
-    </a>
+            </a>
             <div class="location-btn flex items-center space-x-2 text-base">
                 <i class="fa-solid fa-map-marker-alt"></i>
                 <span>HCM</span>
@@ -208,8 +208,13 @@
             </nav>
             @auth
                 <div class="relative group">
-                    <div class="nav-link text-base dropdown-toggle">
-                        <i class="fa-solid fa-user mr-1"></i>{{ Auth::user()->name }}
+                    <div class="nav-link text-base dropdown-toggle flex items-center gap-2">
+                        @if(Auth::user()->avatar)
+                            <img src="{{ Auth::user()->avatar }}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
+                        @else
+                            <i class="fa-solid fa-user-circle text-2xl"></i>
+                        @endif
+                        <span>{{ Auth::user()->name }}</span>
                         <i class="fa-solid fa-chevron-down text-sm ml-1"></i>
                     </div>
                     <div class="absolute right-0 hidden group-hover:block dropdown-menu">

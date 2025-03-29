@@ -18,7 +18,7 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
-        'avatar',
+        'avatar', // Added avatar field
         'role',
         'otp_code',
         'otp_expires_at',
@@ -35,7 +35,6 @@ class User extends Authenticatable
         'otp_expires_at' => 'datetime',
     ];
 
-
     public function isAdmin()
     {
         return $this->role === 'admin';
@@ -44,5 +43,10 @@ class User extends Authenticatable
     public function isUser()
     {
         return $this->role === 'user';
+    }
+
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
     }
 }

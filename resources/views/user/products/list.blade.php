@@ -7,23 +7,10 @@
     <!-- Banner giống Shopee -->
     <div class="mb-4">
         <div class="position-relative rounded-3 overflow-hidden" style="height: 300px; background-color: #f5f5f5;">
-            <img src="https://via.placeholder.com/1200x300?text=Shopee+Banner" 
+            <img src="https://no1computer.vn/upload_images/images/2024/04/13/No1computer%20Sale%2030-4%2C%201-5%20trangchu%202-min.png" 
                  class="w-100 h-100" 
                  alt="Banner Promotion" 
                  style="object-fit: cover;">
-            <div class="position-absolute top-50 start-0 translate-middle-y ps-4 text-white">
-                <h1 class="fw-bold" style="font-size: 2.5rem; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
-                    Siêu Sale 3.3
-                </h1>
-                <p class="fs-5" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">
-                    Giảm giá lên đến 50% - Mua sắm ngay!
-                </p>
-                <a href="#" 
-                   class="btn text-white px-4 py-2" 
-                   style="background-color: #ee4d2d; border: none; font-weight: bold; transition: background-color 0.3s;">
-                    Mua Ngay
-                </a>
-            </div>
         </div>
     </div>
     @if($products->count() > 0)

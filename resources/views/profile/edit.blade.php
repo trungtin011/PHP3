@@ -13,7 +13,7 @@
         </div>
     @endif
 
-    <form action="{{ route('profile.update') }}" method="POST" class="bg-white p-6 rounded-xl shadow-lg">
+    <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-xl shadow-lg">
         @csrf
         @method('PUT')
 
@@ -77,14 +77,44 @@
         </div>
 
         <div class="mb-6">
-            <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
-            <textarea class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-y" 
-                      id="address" 
-                      name="address" 
-                      rows="4">{{ old('address', $user->address) }}</textarea>
-            @error('address')
+            <label for="addresses" class="block text-sm font-medium text-gray-700 mb-1">Địa chỉ</label>
+            <div id="addresses-container">
+                @foreach($user->addresses as $index => $address)
+                    <div class="flex items-center gap-2 mb-2">
+                        <input type="text" 
+                               name="addresses[]" 
+                               value="{{ $address->address }}" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                        <button type="button" class="remove-address text-red-500 hover:text-red-700">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                @endforeach
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="text" 
+                           name="addresses[]" 
+                           placeholder="Thêm địa chỉ mới" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                </div>
+            </div>
+            <button type="button" id="add-address" class="mt-2 text-indigo-500 hover:text-indigo-700">
+                <i class="fa-solid fa-plus"></i> Thêm địa chỉ
+            </button>
+        </div>
+
+        <div class="mb-5">
+            <label for="avatar" class="block text-sm font-medium text-gray-700 mb-1">Ảnh đại diện</label>
+            <input type="file" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" 
+                   id="avatar" 
+                   name="avatar" 
+                   accept="image/*">
+            @error('avatar')
                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
             @enderror
+            @if($user->avatar)
+                <img src="{{ $user->avatar }}" alt="Avatar" class="mt-4 w-20 h-20 rounded-full">
+            @endif
         </div>
 
         <div class="text-center">
@@ -95,6 +125,28 @@
         </div>
     </form>
 </div>
+
+<script>
+    document.getElementById('add-address').addEventListener('click', function () {
+        const container = document.getElementById('addresses-container');
+        const newAddress = document.createElement('div');
+        newAddress.classList.add('flex', 'items-center', 'gap-2', 'mb-2');
+        newAddress.innerHTML = `
+            <input type="text" name="addresses[]" placeholder="Thêm địa chỉ mới" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+            <button type="button" class="remove-address text-red-500 hover:text-red-700">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        `;
+        container.appendChild(newAddress);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.remove-address')) {
+            e.target.closest('.flex').remove();
+        }
+    });
+</script>
 @endsection
 
 <!-- Font Awesome for icons -->

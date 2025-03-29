@@ -24,16 +24,31 @@ class ProfileController extends Controller
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6|confirmed',
             'phone' => 'nullable|string|max:15',
-            'address' => 'nullable|string|max:255',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'addresses.*' => 'nullable|string|max:255',
         ]);
 
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password ? Hash::make($request->password) : $user->password,
-            'phone' => $request->phone,
-            'address' => $request->address,
-        ]);
+        $data = $request->only(['name', 'email', 'phone']);
+        if ($request->password) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        if ($request->hasFile('avatar')) {
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            $data['avatar'] = '/storage/' . $avatarPath;
+        }
+
+        $user->update($data);
+
+        // Update addresses
+        $user->addresses()->delete();
+        if ($request->addresses) {
+            foreach ($request->addresses as $address) {
+                if (!empty($address)) {
+                    $user->addresses()->create(['address' => $address]);
+                }
+            }
+        }
 
         return redirect()->route('profile.edit')->with('success', 'Profile updated successfully.');
     }
