@@ -1,116 +1,121 @@
 @extends('layouts.admin')
 
-@section('title', 'Manage Products')
+@section('title', 'Quản Lý Sản Phẩm')
 
 @section('content')
-<div class="container-fluid">
-    <div class="card shadow-lg border-0 rounded-3" style="background: #ffffff; padding: 30px;">
-        <h2 class="mb-4 text-center" style="color: #1f2a44; font-weight: 600; letter-spacing: 1px;">Manage Products</h2>
-
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 10px;">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <div class="mb-4 position-relative">
-            <form action="{{ route('admin.products.index') }}" method="GET" class="d-flex">
-                <input type="text" name="search" class="form-control me-2 shadow-sm" 
-                    placeholder="Search products..." id="search-input"
-                    value="{{ request('search') }}" {{-- Preserve search query --}}
-                    style="border-radius: 10px; padding: 12px; border: 1px solid #e0e4e9;">
-                <button type="submit" class="btn btn-primary shadow-sm" style="border-radius: 10px;">Search</button>
-            </form>
-            <ul class="search-results list-unstyled mt-2 position-absolute bg-white border rounded-3 shadow-lg w-100" 
-                id="search-results" style="z-index: 1000; display: none; max-height: 400px; overflow-y: auto;">
-            </ul>
-        </div>
-
-        <div class="mb-4">
-            <a href="{{ route('admin.products.create') }}" class="btn shadow-sm" 
-                style="background: linear-gradient(45deg, #ffd700, #ffea80); color: #1f2a44; font-weight: 600; padding: 12px 25px; border-radius: 10px; transition: all 0.3s ease;">
-                <i class="bi bi-plus-lg me-2"></i>Add Product
+<div class="container-fluid py-4">
+    <div class="card shadow-sm border-0 rounded-3" style="background: #fff; padding: 20px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #ee4d2d; font-weight: bold; font-size: 24px; margin: 0;">Quản Lý Sản Phẩm</h2>
+            <a href="{{ route('admin.products.create') }}" class="btn"
+                style="background: #ee4d2d; color: white; font-weight: 600; padding: 10px 20px; border-radius: 5px;">
+                <i class="bi bi-plus-lg me-2"></i>Thêm Sản Phẩm
             </a>
         </div>
 
+        @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert"
+            style="background: #d4edda; border: none; border-radius: 5px; color: #155724;">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
+        <!-- Thanh tìm kiếm và lọc -->
+        <div class="mb-4">
+            <form action="{{ route('admin.products.index') }}" method="GET" class="row g-3 align-items-center">
+                <div class="col-md-6 position-relative">
+                    <input type="text" name="search" class="form-control shadow-sm"
+                        placeholder="Tìm kiếm sản phẩm..." id="search-input"
+                        value="{{ request('search') }}"
+                        style="border-radius: 5px; padding: 10px 40px 10px 15px; border: 1px solid #ddd;">
+                    <i class="bi bi-search" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #757575;"></i>
+                    <ul class="search-results list-unstyled mt-2 position-absolute bg-white border rounded-3 shadow-sm w-100"
+                        id="search-results" style="z-index: 1000; display: none; max-height: 300px; overflow-y: auto;"></ul>
+                </div>
+                <div class="col-md-3">
+                    <select name="price_filter" class="form-select shadow-sm"
+                        style="border-radius: 5px; padding: 10px; border: 1px solid #ddd;">
+                        <option value="">Lọc theo giá</option>
+                        <option value="low_to_high" {{ request('price_filter') == 'low_to_high' ? 'selected' : '' }}>Thấp đến Cao</option>
+                        <option value="high_to_low" {{ request('price_filter') == 'high_to_low' ? 'selected' : '' }}>Cao đến Thấp</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn w-100"
+                        style="background: #ee4d2d; color: white; border-radius: 5px; padding: 10px;">Áp dụng</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Bảng sản phẩm -->
         <div class="table-responsive">
-            <table class="table table-hover align-middle text-center" style="border-radius: 10px; overflow: hidden;">
-                <thead style="background: linear-gradient(135deg, #1f2a44 0%, #141b2d 100%); color: white;">
+            <table class="table table-hover align-middle" style="border-radius: 5px; overflow: hidden;">
+                <thead style="background: #f5f5f5; color: #333;">
                     <tr>
                         <th style="padding: 15px;">ID</th>
-                        <th style="padding: 15px;">Main Image</th>
-                        <th style="padding: 15px;">Title</th>
-                        <th style="padding: 15px;">Description</th>
-                        <th style="padding: 15px;">Price</th>
-                        <th style="padding: 15px;">Stock</th>
-                        <th style="padding: 15px;">Status</th>
-                        <th style="padding: 15px;">Category</th>
-                        <th style="padding: 15px;">Brand</th>
-                        <th style="padding: 15px;">Additional Images</th>
-                        <th style="padding: 15px;">Actions</th>
+                        <th style="padding: 15px;">Hình ảnh</th>
+                        <th style="padding: 15px;">Tên sản phẩm</th>
+                        <th style="padding: 15px;">Giá</th>
+                        <th style="padding: 15px;">Kho</th>
+                        <th style="padding: 15px;">Trạng thái</th>
+                        <th style="padding: 15px;">Danh mục</th>
+                        <th style="padding: 15px;">Thương hiệu</th>
+                        <th style="padding: 15px;">Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($products as $product)
-                        <tr style="transition: all 0.3s ease;" class="shadow-sm-on-hover">
-                            <td>{{ $product->id }}</td>
-                            <td>
-                                @if($product->main_image)
-                                    <img src="{{ asset('storage/' . $product->main_image) }}" alt="{{ $product->title }}" 
-                                        class="img-thumbnail rounded" style="width: 80px; height: 80px; object-fit: cover; border: none;">
-                                @else
-                                    <span class="text-muted">No Image</span>
-                                @endif
-                            </td>
-                            <td style="font-weight: 500;">{{ $product->title }}</td>
-                            <td>{{ Str::limit($product->description, 50, '...') }}</td>
-                            <td>{{ number_format($product->price, 0, ',', '.') }} đ</td>
-                            <td>{{ $product->stock }}</td>
-                            <td>
-                                @if($product->status == 'in_stock')
-                                    <span class="badge bg-success">In Stock</span>
-                                @elseif($product->status == 'out_of_stock')
-                                    <span class="badge bg-danger">Out of Stock</span>
-                                @else
-                                    <span class="badge bg-secondary">Unknown</span>
-                                @endif
-                            </td>
-                            <td>{{ $product->category->name ?? 'No Category' }}</td>
-                            <td>{{ $product->brand->name ?? 'No Brand' }}</td>
-                            <td>
-                                @if($product->additional_images)
-                                    @foreach(json_decode($product->additional_images, true) as $image)
-                                        <img src="{{ asset('storage/' . $image) }}" alt="Additional Image" 
-                                            class="img-thumbnail mt-2" style="width: 50px; height: 50px; object-fit: cover;">
-                                    @endforeach
-                                @else
-                                    <span class="text-muted">No Additional Images</span>
-                                @endif
-                            </td>
-                            <td>
-                                <a href="{{ route('admin.products.edit', $product->id) }}" 
-                                    class="btn btn-sm shadow-sm me-2" 
-                                    style="background: #ffd700; color: #1f2a44; border-radius: 8px; transition: all 0.3s ease;">
-                                    <i class="bi bi-pencil-square"></i> Edit
-                                </a>
-                                <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm shadow-sm" 
-                                        style="background: #dc3545; color: white; border-radius: 8px; transition: all 0.3s ease;" 
-                                        onclick="return confirm('Are you sure you want to delete this product?')">
-                                        <i class="bi bi-trash"></i> Delete
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 15px;">{{ $product->id }}</td>
+                        <td style="padding: 15px;">
+                            @if($product->main_image)
+                            <img src="{{ asset('storage/' . $product->main_image) }}" alt="{{ $product->title }}"
+                                style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px; border: 1px solid #eee;">
+                            @else
+                            <span class="text-muted">Chưa có ảnh</span>
+                            @endif
+                        </td>
+                        <td style="padding: 15px; font-weight: 500;">{{ Str::limit($product->title, 30, '...') }}</td>
+                        <td style="padding: 15px; color: #ee4d2d;">{{ number_format($product->price, 0, ',', '.') }} đ</td>
+                        <td style="padding: 15px;">{{ $product->stock }}</td>
+                        <td style="padding: 15px;">
+                            @if($product->status == 'in_stock')
+                            <span class="badge" style="background: #28a745; color: white;">Còn hàng</span>
+                            @elseif($product->status == 'out_of_stock')
+                            <span class="badge" style="background: #dc3545; color: white;">Hết hàng</span>
+                            @else
+                            <span class="badge" style="background: #6c757d; color: white;">Không xác định</span>
+                            @endif
+                        </td>
+                        <td style="padding: 15px;">{{ $product->category->name ?? 'Không có' }}</td>
+                        <td style="padding: 15px;">{{ $product->brand->name ?? 'Không có' }}</td>
+                        <td style="padding: 15px;">
+                            <!-- Nút Edit -->
+                            <a href="{{ route('admin.products.edit', $product->id) }}" 
+                                class="btn btn-sm me-2" 
+                                style="background: #ffd700; color: #333; border-radius: 5px;" 
+                                title="Sửa">
+                                <i class="bi bi-pencil-square"></i> Sửa
+                            </a>
+                            <!-- Nút Delete -->
+                            <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline delete-form">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm" 
+                                    style="background: #dc3545; color: white; border-radius: 5px;" 
+                                    title="Xóa">
+                                    <i class="bi bi-trash"></i> Xóa
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
 
-        <!-- Pagination Links -->
+        <!-- Phân trang -->
         <div class="d-flex justify-content-center mt-4">
             {{ $products->links('pagination::bootstrap-5') }}
         </div>
@@ -118,40 +123,49 @@
 </div>
 
 <style>
-    .shadow-sm-on-hover:hover {
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
+    .card {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
-    .search-results li:hover {
-        background: linear-gradient(90deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0) 100%);
+    .table-hover tbody tr:hover {
+        background: #fafafa;
     }
 
     .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        opacity: 0.9;
+        transform: translateY(-1px);
     }
 
     .pagination .page-link {
-        border-radius: 8px;
+        border-radius: 5px;
+        color: #ee4d2d;
         margin: 0 5px;
-        color: #1f2a44;
-        transition: all 0.3s ease;
     }
 
     .pagination .page-item.active .page-link {
-        background: #ffd700;
-        border-color: #ffd700;
-        color: #1f2a44;
+        background: #ee4d2d;
+        border-color: #ee4d2d;
+        color: white;
     }
 
     .pagination .page-link:hover {
-        background: #ffd700;
-        color: #1f2a44;
+        background: #ee4d2d;
+        color: white;
+    }
+
+    .search-results li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+
+    .search-results li:hover {
+        background: #f5f5f5;
     }
 </style>
 
 <script>
+    // Xử lý tìm kiếm
     const searchInput = document.getElementById('search-input');
     const searchResults = document.getElementById('search-results');
 
@@ -165,33 +179,31 @@
                     searchResults.style.display = 'block';
                     data.forEach(product => {
                         const li = document.createElement('li');
-                        li.classList.add('p-3', 'border-bottom', 'd-flex', 'align-items-center');
-                        li.style.cursor = 'pointer';
-                        li.style.transition = 'all 0.3s ease';
+                        li.classList.add('d-flex', 'align-items-center');
 
                         const img = document.createElement('img');
                         img.src = product.main_image ? `{{ asset('storage') }}/${product.main_image}` : 'https://via.placeholder.com/50';
                         img.alt = product.title;
-                        img.style.width = '60px';
-                        img.style.height = '60px';
+                        img.style.width = '50px';
+                        img.style.height = '50px';
                         img.style.objectFit = 'cover';
-                        img.classList.add('me-3', 'rounded');
+                        img.style.borderRadius = '5px';
+                        img.classList.add('me-3');
 
                         const div = document.createElement('div');
-                        div.innerHTML = `<strong style="color: #1f2a44;">${product.title}</strong><br>
-                                        <span style="color: #666;">Price: ${new Intl.NumberFormat().format(product.price)} đ</span><br>
-                                        <span style="color: #666;">Stock: ${product.stock}</span>`;
+                        div.innerHTML = `<strong style="color: #333;">${product.title}</strong><br>
+                                        <span style="color: #ee4d2d;">${new Intl.NumberFormat('vi-VN').format(product.price)} đ</span>`;
 
                         li.appendChild(img);
                         li.appendChild(div);
-
                         li.addEventListener('click', () => {
                             window.location.href = `{{ url('/admin/products') }}/${product.id}/edit`;
                         });
 
                         searchResults.appendChild(li);
                     });
-                });
+                })
+                .catch(error => console.error('Lỗi tìm kiếm:', error));
         } else {
             searchResults.style.display = 'none';
         }
@@ -201,6 +213,16 @@
         if (!searchResults.contains(event.target) && event.target !== searchInput) {
             searchResults.style.display = 'none';
         }
+    });
+
+    // Xác nhận xóa sản phẩm
+    document.querySelectorAll('.delete-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (confirm('Bạn có chắc muốn xóa sản phẩm này không?')) {
+                this.submit();
+            }
+        });
     });
 </script>
 @endsection

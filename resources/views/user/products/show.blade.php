@@ -5,7 +5,6 @@
 @section('content')
 <div class="container mt-5">
     <div class="row bg-white p-4 rounded-3 shadow-sm">
-        <!-- Hình ảnh sản phẩm -->
         <div class="col-md-6 mb-4">
             <!-- Hình ảnh chính -->
             <div class="position-relative mb-3" style="height: 400px; background-color: #f5f5f5;">
@@ -29,8 +28,6 @@
                 </div>
             @endif
         </div>
-
-        <!-- Thông tin sản phẩm -->
         <div class="col-md-6">
             <!-- Tiêu đề -->
             <h2 class="fw-bold" style="color: #333; font-size: 1.8rem; line-height: 1.2;">
@@ -88,11 +85,14 @@
                    style="color: #333; border-color: #ccc; background-color: #fff; transition: all 0.3s;">
                     Back to Products
                 </a>
-                <button class="btn text-white px-4 py-2" 
-                        style="background-color: #ee4d2d; border: none;"
-                        {{ $product->stock <= 0 ? 'disabled' : '' }}>
-                    Thêm vào giỏ
-                </button>
+                <form action="{{ route('user.cart.add', $product->id) }}" method="POST">
+                    @csrf
+                    <button class="btn text-white px-4 py-2" 
+                            style="background-color: #ee4d2d; border: none;"
+                            {{ $product->stock <= 0 ? 'disabled' : '' }}>
+                        {{ $product->stock <= 0 ? 'Hết hàng' : 'Thêm vào giỏ hàng' }}
+                    </button>
+                </form>
             </div>
         </div>
     </div>

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\User\ProductController as UserProductController;
+use App\Http\Controllers\User\CartController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -23,6 +24,12 @@ Route::get('/', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('/cart', [CartController::class, 'index'])->name('user.cart.index');
+    Route::post('/cart/add/{productId}', [CartController::class, 'add'])->name('user.cart.add');
+    Route::put('/cart/update/{cartId}', [CartController::class, 'update'])->name('user.cart.update');
+    Route::put('/cart/update-quantity/{cartId}', [CartController::class, 'updateQuantity'])->name('user.cart.updateQuantity');
+    Route::delete('/cart/remove/{cartId}', [CartController::class, 'remove'])->name('user.cart.remove');
 });
 
 Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {

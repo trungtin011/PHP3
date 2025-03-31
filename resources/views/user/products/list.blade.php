@@ -72,6 +72,15 @@
                             <p class="mt-1 mb-0 text-muted" style="font-size: 0.75rem;">
                                 {{ $product->location ?? 'TP. Hồ Chí Minh' }}
                             </p>
+
+                            <!-- Add to Cart Button -->
+                            <form action="{{ route('user.cart.add', $product->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-danger btn-sm w-100 mt-2" 
+                                        {{ $product->stock <= 0 ? 'disabled' : '' }}>
+                                    {{ $product->stock <= 0 ? 'Hết hàng' : 'Thêm vào giỏ hàng' }}
+                                </button>
+                            </form>
                         </div>
                         
                         <!-- Hover effect -->

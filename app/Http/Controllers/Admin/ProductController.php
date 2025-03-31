@@ -20,9 +20,28 @@ class ProductController extends Controller
                   ->orWhere('description', 'like', '%' . $request->search . '%');
         }
 
+        if ($request->has('price_filter') && $request->price_filter) {
+            if ($request->price_filter == 'low_to_high') {
+                $query->orderBy('price', 'asc');
+            } elseif ($request->price_filter == 'high_to_low') {
+                $query->orderBy('price', 'desc');
+            }
+        }
+
         $products = $query->paginate(6);
 
         return view('admin.products.index', compact('products'));
+    }
+
+    public function search(Request $request)
+    {
+        $query = $request->query('query');
+        $products = Product::where('title', 'like', '%' . $query . '%')
+                            ->orWhere('description', 'like', '%' . $query . '%')
+                            ->take(10)
+                            ->get(['id', 'title', 'price', 'stock', 'main_image']);
+
+        return response()->json($products);
     }
 
     public function create()
