@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -68,5 +70,33 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+
+            $user = User::firstOrCreate(
+                ['email' => $googleUser->getEmail()],
+                [
+                    'name' => $googleUser->getName(),
+                    'email' => $googleUser->getEmail(),
+                    'avatar' => $googleUser->getAvatar(),
+                    'password' => bcrypt(Str::random(16)), // Generate a random password
+                ]
+            );
+
+            Auth::login($user);
+
+            return redirect()->route('home')->with('success', 'Đăng nhập thành công!');
+        } catch (\Exception $e) {
+            return redirect()->route('login')->withErrors(['error' => 'Đăng nhập bằng Google thất bại.']);
+        }
     }
 }

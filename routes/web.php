@@ -8,7 +8,10 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\User\ProductController as UserProductController;
 use App\Http\Controllers\User\CartController;
+use App\Http\Controllers\Auth\PasswordResetController;
+use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -16,10 +19,25 @@ Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('regi
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+})->name('password.request');
+
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email');
+
+Route::get('/reset-password/{token}', function (Request $request, $token) {
+    return view('auth.reset-password', ['request' => $request, 'token' => $token]);
+})->name('password.reset');
+
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
+
 Route::get('/', function () {
     $categories = \App\Models\Category::with('children')->whereNull('parent_id')->get();
     return view('user.welcome', compact('categories'));
 })->name('home');
+
+Route::get('/google/redirect', [AuthController::class, 'redirectToGoogle'])->name('google.redirect');
+Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('google.callback');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -73,4 +91,13 @@ Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
 Route::get('/user/products', [ProductController::class, 'list'])->name('user.products.list');
 Route::get('/products', [UserProductController::class, 'list'])->name('products.list');
 Route::get('/products/{slug}', [UserProductController::class, 'show'])->name('products.show');
+
+Route::get('/test-email', function () {
+    \Illuminate\Support\Facades\Mail::raw('This is a test email.', function ($message) {
+        $message->to('recipient@example.com') // Replace with your email
+                ->subject('Test Email');
+    });
+
+    return 'Test email sent!';
+});
 

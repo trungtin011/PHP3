@@ -18,7 +18,7 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
-        'avatar', // Added avatar field
+        'avatar',
         'role',
         'otp_code',
         'otp_expires_at',

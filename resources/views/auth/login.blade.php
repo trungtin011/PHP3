@@ -37,6 +37,7 @@
 
         <div class="text-center mt-6">
             <p class="text-lg text-gray-600">Chưa có tài khoản? <a href="{{ route('register') }}" class="text-yellow-600 hover:text-yellow-700 font-medium">Đăng ký ngay</a></p>
+            <p class="text-lg text-gray-600 mt-2"><a href="{{ route('password.request') }}" class="text-yellow-600 hover:text-yellow-700 font-medium">Quên mật khẩu?</a></p>
         </div>
     </div>
 </div>
