@@ -34,7 +34,9 @@
 
             <button type="submit" class="w-full bg-yellow-600 text-white p-3 rounded-lg hover:bg-yellow-700 transition duration-300 text-lg font-semibold shadow-md">Đăng nhập</button>
         </form>
-
+<a href="{{ route('auth.google') }}" class="btn btn-danger">
+    <i class="fab fa-google"></i> Đăng nhập với Google
+</a>
         <div class="text-center mt-6">
             <p class="text-lg text-gray-600">Chưa có tài khoản? <a href="{{ route('register') }}" class="text-yellow-600 hover:text-yellow-700 font-medium">Đăng ký ngay</a></p>
             <p class="text-lg text-gray-600 mt-2"><a href="{{ route('password.request') }}" class="text-yellow-600 hover:text-yellow-700 font-medium">Quên mật khẩu?</a></p>
