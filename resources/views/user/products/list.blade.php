@@ -76,7 +76,7 @@
                             <!-- Add to Cart Button -->
                             <form action="{{ route('user.cart.add', $product->id) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="btn btn-danger btn-sm w-100 mt-2" 
+                                <button type="submit" class="btn btn-danger btn-sm w-70 mt-2" 
                                         {{ $product->stock <= 0 ? 'disabled' : '' }}>
                                     {{ $product->stock <= 0 ? 'Hết hàng' : 'Thêm vào giỏ hàng' }}
                                 </button>
