@@ -195,7 +195,7 @@
             <a href="#" class="nav-link text-base">
                 <i class="fa-solid fa-truck mr-1"></i>Đơn hàng
             </a>
-            <a href="#" class="nav-link text-base">
+            <a href="/cart" class="nav-link text-base">
                 <i class="fa-solid fa-shopping-bag mr-1"></i>Giỏ hàng
             </a>
             <nav class="hidden md:flex space-x-6">

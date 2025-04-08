@@ -15,9 +15,9 @@
             </div>
             
             <!-- Hình ảnh phụ -->
-            @if($product->additional_images)
+            @if(!empty($product->additional_images))
                 <div class="d-flex flex-wrap gap-2">
-                    @foreach(json_decode($product->additional_images, true) as $image)
+                    @foreach($product->additional_images as $image)
                         <div class="border rounded" style="width: 80px; height: 80px; cursor: pointer;">
                             <img src="{{ asset('storage/' . $image) }}" 
                                  class="img-fluid w-100 h-100" 

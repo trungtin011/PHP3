@@ -14,6 +14,10 @@ class Product extends Model
         'title', 'description', 'price', 'stock', 'status', 'category_id', 'brand_id', 'image', 'slug', 'main_image', 'additional_images'
     ];
 
+    protected $casts = [
+        'additional_images' => 'array', // Cast additional_images to array
+    ];
+
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');

@@ -41,6 +41,12 @@ class ProductController extends Controller
                             ->take(10)
                             ->get(['id', 'title', 'price', 'stock', 'main_image']);
 
+        // Generate correct URLs for main_image
+        $products->transform(function ($product) {
+            $product->main_image = $product->main_image ? Storage::url($product->main_image) : null;
+            return $product;
+        });
+
         return response()->json($products);
     }
 
@@ -63,8 +69,8 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'status' => 'required|in:in_stock,out_of_stock',
-            'category_id' => 'nullable|exists:categories,id',
-            'brand_id' => 'nullable|exists:brands,id',
+            'category_id' => 'required|exists:categories,id', 
+            'brand_id' => 'required|exists:brands,id',       
             'slug' => 'nullable|string|max:255|unique:products,slug',
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'additional_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -111,8 +117,8 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'status' => 'required|in:in_stock,out_of_stock',
-            'category_id' => 'nullable|exists:categories,id',
-            'brand_id' => 'nullable|exists:brands,id',
+            'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'required|exists:brands,id',     
             'slug' => 'nullable|string|max:255|unique:products,slug,' . $id,
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'additional_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -121,10 +127,21 @@ class ProductController extends Controller
         $product = Product::findOrFail($id);
 
         if ($request->hasFile('main_image')) {
+            if ($product->main_image && Storage::exists('public/' . $product->main_image)) {
+                Storage::delete('public/' . $product->main_image); 
+            }
             $validatedData['main_image'] = $request->file('main_image')->store('views/images', 'public');
         }
 
         if ($request->hasFile('additional_images')) {
+            if ($product->additional_images) {
+                $oldImages = json_decode($product->additional_images, true);
+                foreach ($oldImages as $oldImage) {
+                    if (Storage::exists('public/' . $oldImage)) {
+                        Storage::delete('public/' . $oldImage); 
+                    }
+                }
+            }
             $additionalImages = [];
             foreach ($request->file('additional_images') as $image) {
                 $additionalImages[] = $image->store('views/images', 'public');

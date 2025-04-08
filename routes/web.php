@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use App\Http\Controllers\GeminiChatController;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -48,6 +49,16 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/cart/update/{cartId}', [CartController::class, 'update'])->name('user.cart.update');
     Route::put('/cart/update-quantity/{cartId}', [CartController::class, 'updateQuantity'])->name('user.cart.updateQuantity');
     Route::delete('/cart/remove/{cartId}', [CartController::class, 'remove'])->name('user.cart.remove');
+    Route::get('/checkout', [CartController::class, 'checkout'])->name('user.checkout');
+    Route::post('/order/place', [CartController::class, 'placeOrder'])->name('user.order.place');
+    Route::get('/thank-you', [CartController::class, 'thankYou'])->name('user.thankyou');
+
+    Route::post('/vnpay/payment', [\App\Http\Controllers\User\VNPayController::class, 'processPayment'])->name('vnpay.payment');
+    Route::get('/vnpay/callback', [\App\Http\Controllers\User\VNPayController::class, 'callback'])->name('vnpay.callback');
+    Route::get('/payment/history', [\App\Http\Controllers\User\VNPayController::class, 'paymentHistory'])->name('payment.history');
+
+    Route::post('/momo/payment', [\App\Http\Controllers\User\MoMoController::class, 'processPayment'])->name('momo.payment');
+    Route::get('/momo/callback', [\App\Http\Controllers\User\MoMoController::class, 'momoCallback'])->name('momo.callback');
 });
 
 Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
@@ -86,9 +97,16 @@ Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
         'update' => 'admin.users.update',
         'destroy' => 'admin.users.destroy',
     ]);
+
+    Route::resource('coupons', \App\Http\Controllers\Admin\CouponController::class)->except(['show']);
+
+    Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('admin.orders.index');
+    Route::get('/orders/{id}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('admin.orders.show');
+    Route::put('/orders/{id}', [\App\Http\Controllers\Admin\OrderController::class, 'update'])->name('admin.orders.update');
+    Route::delete('/orders/{id}', [\App\Http\Controllers\Admin\OrderController::class, 'destroy'])->name('admin.orders.destroy'); // Added destroy route
 });
 
-Route::get('/user/products', [ProductController::class, 'list'])->name('user.products.list');
+Route::get('/user/products', [UserProductController::class, 'list'])->name('user.products'); // Ensure this route is defined
 Route::get('/products', [UserProductController::class, 'list'])->name('products.list');
 Route::get('/products/{slug}', [UserProductController::class, 'show'])->name('products.show');
 
@@ -101,6 +119,8 @@ Route::get('/test-email', function () {
     return 'Test email sent!';
 });
 
-
 Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+
+Route::get('/chat', [GeminiChatController::class, 'index'])->name('chat.index');
+Route::post('/chat/send', [GeminiChatController::class, 'send'])->name('chat.send');

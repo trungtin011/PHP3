@@ -12,7 +12,8 @@ class ProfileController extends Controller
     public function edit()
     {
         $user = Auth::user();
-        return view('profile.edit', compact('user'));
+        $orders = $user->orders()->with('items.product')->orderBy('created_at', 'desc')->get(); // Fetch user orders
+        return view('profile.edit', compact('user', 'orders'));
     }
 
     public function update(Request $request)
@@ -26,6 +27,7 @@ class ProfileController extends Controller
             'phone' => 'nullable|string|max:15',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'addresses.*' => 'nullable|string|max:255',
+            'default_address' => 'nullable|integer|exists:addresses,id', // Validate default address
         ]);
 
         $data = $request->only(['name', 'email', 'phone']);
@@ -48,6 +50,12 @@ class ProfileController extends Controller
                     $user->addresses()->create(['address' => $address]);
                 }
             }
+        }
+
+        // Set default address
+        if ($request->default_address) {
+            $user->addresses()->update(['default' => false]); // Reset all to false
+            $user->addresses()->where('id', $request->default_address)->update(['default' => true]);
         }
 
         return redirect()->route('profile.edit')->with('success', 'Profile updated successfully.');

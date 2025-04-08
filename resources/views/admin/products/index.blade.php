@@ -70,7 +70,7 @@
                         <td style="padding: 15px;">{{ $product->id }}</td>
                         <td style="padding: 15px;">
                             @if($product->main_image)
-                            <img src="{{ asset('storage/' . $product->main_image) }}" alt="{{ $product->title }}"
+                            <img src="{{ $product->main_image ? Storage::url($product->main_image) : asset('default-image.jpg') }}" alt="{{ $product->title }}"
                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px; border: 1px solid #eee;">
                             @else
                             <span class="text-muted">Chưa có ảnh</span>

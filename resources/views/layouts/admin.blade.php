@@ -205,8 +205,9 @@
             <a href="{{ route('admin.products.index') }}"><i class="fa-solid fa-box"></i><span>Products</span></a>
             <a href="{{ route('admin.categories.index') }}"><i class="fa-solid fa-tags"></i><span>Categories</span></a>
             <a href="{{ route('admin.brands.index') }}"><i class="fa-solid fa-building"></i><span>Brands</span></a>
-            <a href="#"><i class="fa-solid fa-cart-shopping"></i><span>Orders</span></a>
+            <a href="{{ route('admin.orders.index') }}"><i class="fa-solid fa-cart-shopping"></i><span>Orders</span></a>
             <a href="{{ route('admin.users.index') }}"><i class="fa-solid fa-users"></i><span>Users</span></a>
+            <a href="{{ route('coupons.index') }}"><i class="fa-solid fa-ticket"></i><span>Coupons</span></a>
         </div>
     </div>
 

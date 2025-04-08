@@ -27,7 +27,7 @@ class PasswordResetController extends Controller
         $user->password_reset_token_created_at = now();
         $user->save();
 
-        // Send email with reset link
+
         $resetLink = route('password.reset', ['token' => $user->password_reset_token]);
         Mail::send('emails.password-reset', ['resetLink' => $resetLink], function ($message) use ($user) {
             $message->to($user->email)

@@ -27,11 +27,10 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
-            // Redirect based on user role
             if (Auth::user()->role === 'admin') {
-                return redirect()->route('dashboard'); // Admin goes to dashboard
+                return redirect()->route('dashboard'); 
             } else {
-                return redirect('/'); // User goes to homepage
+                return redirect('/'); 
             }
         }
 
@@ -57,7 +56,7 @@ class AuthController extends Controller
             'name' => $validatedData['name'],
             'email' => $validatedData['email'],
             'password' => Hash::make($validatedData['password']),
-            'role' => 'user', // Default role is 'user'
+            'role' => 'user',
         ]);
 
         return redirect()->route('login')->with('success', 'Registration successful. Please log in.');
@@ -88,7 +87,7 @@ class AuthController extends Controller
                     'name' => $googleUser->getName(),
                     'email' => $googleUser->getEmail(),
                     'avatar' => $googleUser->getAvatar(),
-                    'password' => bcrypt(Str::random(16)), // Generate a random password
+                    'password' => bcrypt(Str::random(16)), 
                 ]
             );
 
