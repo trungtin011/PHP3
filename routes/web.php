@@ -13,6 +13,10 @@ use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\GeminiChatController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+
+
+
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -66,12 +70,15 @@ Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
         return view('admin.dashboard'); 
     })->name('dashboard');
 
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/products', [AdminProductController::class, 'index'])->name('admin.products.index');
     Route::get('/products/create', [AdminProductController::class, 'create'])->name('admin.products.create');
     Route::post('/products', [AdminProductController::class, 'store'])->name('admin.products.store');
     Route::get('/products/{id}/edit', [AdminProductController::class, 'edit'])->name('admin.products.edit');
     Route::put('/products/{id}', [AdminProductController::class, 'update'])->name('admin.products.update');
     Route::delete('/products/{id}', [AdminProductController::class, 'destroy'])->name('admin.products.destroy');
+    Route::get('/products/export', [AdminProductController::class, 'export'])->name('admin.products.export');
+
     Route::get('/admin/products/search', [AdminProductController::class, 'search'])->name('admin.products.search');
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('admin.categories.index');
@@ -107,8 +114,9 @@ Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
 });
 
 Route::get('/user/products', [UserProductController::class, 'list'])->name('user.products'); // Ensure this route is defined
-Route::get('/products', [UserProductController::class, 'list'])->name('products.list');
-Route::get('/products/{slug}', [UserProductController::class, 'show'])->name('products.show');
+Route::get('/products', [ProductController::class, 'list'])->name('products.list');
+Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');
+Route::post('/products/{slug}/review', [ProductController::class, 'storeReview'])->name('products.review');
 
 Route::get('/test-email', function () {
     \Illuminate\Support\Facades\Mail::raw('This is a test email.', function ($message) {
@@ -124,3 +132,4 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallbac
 
 Route::get('/chat', [GeminiChatController::class, 'index'])->name('chat.index');
 Route::post('/chat/send', [GeminiChatController::class, 'send'])->name('chat.send');
+

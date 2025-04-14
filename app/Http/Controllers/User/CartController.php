@@ -2,12 +2,13 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cart;
+use App\Models\Cart; 
 use App\Models\Product;
 use App\Models\Coupon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Http;
 
 class CartController extends Controller
 {
@@ -103,6 +104,55 @@ class CartController extends Controller
         return redirect()->route('user.cart.index')->with('success', 'Sản phẩm đã được xóa khỏi giỏ hàng.');
     }
 
+
+    private function getServiceId($fromDistrictId, $toDistrictId)
+    {
+        $response = Http::withHeaders([
+            'Token' => '7dd71557-160d-11f0-95d0-0a92b8726859',
+            'ShopId' => '2509766',
+        ])->get('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/available-services', [
+            'from_district' => $fromDistrictId,
+            'to_district' => $toDistrictId,
+        ]);
+
+        if ($response->successful()) {
+            $services = $response->json()['data'] ?? [];
+            return $services[0]['service_id'] ?? null; // Use the first available service_id
+        }
+
+        return null; // Return null if no service_id is found
+    }
+
+    private function getShippingFee($toDistrictId, $weight)
+    {
+        $fromDistrictId = 1450; // Example: Quận 1, TP.HCM
+        $serviceId = $this->getServiceId($fromDistrictId, $toDistrictId);
+
+        if (!$serviceId) {
+            return 0; // Return 0 if no valid service_id is found
+        }
+
+        $response = Http::withHeaders([
+            'Token' => '7dd71557-160d-11f0-95d0-0a92b8726859', // Ensure the correct token is used
+            'ShopId' => '2509766',
+        ])->post('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee', [
+            'from_district_id' => $fromDistrictId,
+            'to_district_id' => $toDistrictId,
+            'service_id' => $serviceId,
+            'weight' => $weight, // Trọng lượng (gram)
+            'length' => 20,
+            'width' => 20,
+            'height' => 10,
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return $data['data']['total'] ?? 0;
+        }
+
+        return 0; // Trả về 0 nếu có lỗi
+    }
+
     public function checkout(Request $request)
     {
         $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
@@ -114,6 +164,20 @@ class CartController extends Controller
         $addresses = Auth::user()->addresses;
         $total = $cartItems->sum('total');
         $discount = 0;
+
+        // Tính tổng trọng lượng sản phẩm
+        $totalWeight = $cartItems->sum(function ($item) {
+            return $item->product->weight * $item->quantity;
+        });
+
+        // Lấy phí vận chuyển từ API GHN
+        $shippingFee = 0;
+        if ($addresses->isNotEmpty()) {
+            $defaultAddress = $addresses->where('default', true)->first();
+            if ($defaultAddress) {
+                $shippingFee = $this->getShippingFee($defaultAddress->district_id, $totalWeight);
+            }
+        }
 
         if ($request->has('coupon_code')) {
             $coupon = Coupon::where('code', $request->coupon_code)->first();
@@ -129,9 +193,9 @@ class CartController extends Controller
             }
         }
 
-        $totalAfterDiscount = $total - $discount;
+        $totalAfterDiscount = $total + $shippingFee - $discount;
 
-        return view('user.checkout.index', compact('cartItems', 'total', 'discount', 'totalAfterDiscount', 'addresses'));
+        return view('user.checkout.index', compact('cartItems', 'total', 'discount', 'totalAfterDiscount', 'shippingFee', 'addresses'));
     }
 
     public function placeOrder(Request $request)
@@ -142,30 +206,64 @@ class CartController extends Controller
             return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
-        $order = \App\Models\Order::createOrder(
-            Auth::id(),
-            $request->input('address', 'Địa chỉ mặc định'),
-            $request->input('payment_method', 'COD'),
-            $cartItems,
-            0, // Shipping fee
-            0, // Discount
-            $request->input('notes') // Notes
-        );
+        $paymentMethod = $request->input('payment_method', 'COD');
 
-        // Clear the cart
-        Cart::where('user_id', Auth::id())->delete();
+        if ($paymentMethod === 'COD') {
+            // Save order immediately for COD
+            $order = \App\Models\Order::createOrder(
+                Auth::id(),
+                $request->input('address', 'Địa chỉ mặc định'),
+                $paymentMethod,
+                $cartItems,
+                0, // Shipping fee
+                0, // Discount
+                $request->input('notes') // Notes
+            );
 
-        // Send email confirmation
-        Mail::send('emails.order_confirmation', ['order' => $order], function ($message) use ($order) {
-            $message->to($order->user->email)
-                    ->subject('Xác nhận đơn hàng #' . $order->id);
-        });
+            // Clear the cart
+            Cart::where('user_id', Auth::id())->delete();
 
-        return redirect()->route('user.thankyou')->with('success', 'Đơn hàng của bạn đã được đặt thành công.');
+            // Send email confirmation
+            Mail::send('emails.order_confirmation', ['order' => $order], function ($message) use ($order) {
+                $message->to($order->user->email)
+                        ->subject('Xác nhận đơn hàng #' . $order->id);
+            });
+
+            return redirect()->route('user.thankyou')->with('success', 'Đơn hàng của bạn đã được đặt thành công.');
+        }
+
+        // Redirect to payment gateways for VNPay or MoMo
+        if ($paymentMethod === 'vnpay') {
+            return redirect()->route('vnpay.payment')->with('amount', $cartItems->sum('total'));
+        } elseif ($paymentMethod === 'momo') {
+            return redirect()->route('momo.payment')->with('amount', $cartItems->sum('total'));
+        }
+
+        return redirect()->route('user.checkout')->with('error', 'Phương thức thanh toán không hợp lệ.');
     }
 
     public function thankYou()
     {
         return view('user.thankyou');
+    }
+
+    public function testServiceId()
+    {
+        $fromDistrictId = 1450; // Example: Quận 1
+        $toDistrictId = 1542; // Example: Bình Thạnh
+
+        $serviceId = $this->getServiceId($fromDistrictId, $toDistrictId);
+
+        return $serviceId ? "Service ID: $serviceId" : "No service ID found.";
+    }
+
+    public function testShippingFee()
+    {
+        $toDistrictId = 1542; // Example: Bình Thạnh District
+        $weight = 1000; // Example: 1kg
+
+        $fee = $this->getShippingFee($toDistrictId, $weight);
+
+        return "Phí vận chuyển là: " . number_format($fee, 0, ',', '.') . ' đ';
     }
 }

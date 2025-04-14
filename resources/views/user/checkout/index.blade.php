@@ -99,6 +99,9 @@
                     <div style="font-size: 14px; color: #757575; margin-bottom: 5px;">
                         Tổng tiền hàng: <span style="color: #ee4d2d;">{{ number_format($total, 0, ',', '.') }} đ</span>
                     </div>
+                    <div style="font-size: 14px; color: #757575; margin-bottom: 5px;">
+                        Phí vận chuyển: <span style="color: #ee4d2d;">{{ number_format($shippingFee, 0, ',', '.') }} đ</span>
+                    </div>
                     @if($discount > 0)
                         <div style="font-size: 14px; color: #757575; margin-bottom: 5px;">
                             Giảm giá: <span style="color: #ee4d2d;">-{{ number_format($discount, 0, ',', '.') }} đ</span>

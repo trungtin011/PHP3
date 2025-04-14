@@ -1,113 +1,115 @@
 @extends('layouts.admin')
 
-@section('title', 'Admin Dashboard')
+@section('title', 'Bảng Điều Khiển')
 
 @section('content')
-<div class="container-fluid">
-    <h2 class="mb-5" style="color: #1E3A8A; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;">Admin Dashboard</h2>
+<div class="container py-4">
+    <!-- Tiêu đề -->
+    <div class="mb-4">
+        <h1 class="fs-3 fw-bold text-dark">Bảng Điều Khiển</h1>
+        <p class="text-muted small">Tổng quan hoạt động kinh doanh</p>
+    </div>
 
     <!-- Thống kê nhanh -->
-    <div class="row g-4 mb-5">
+    <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card shadow-lg rounded-3 p-4 animate__animated animate__fadeIn" style="background: linear-gradient(135deg, #FBBF24, #FEF08A); border: none;">
+            <div class="card border-0 rounded-3 p-3 bg-white shadow-sm">
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-box-seam" style="font-size: 2.8rem; color: #1E3A8A; margin-right: 20px;"></i>
+                    <i class="bi bi-box-seam fs-3 text-primary me-3"></i>
                     <div>
-                        <h5 class="mb-1" style="color: #1E3A8A; font-weight: 600; text-transform: uppercase;">Total Products</h5>
-                        <p class="mb-0" style="font-size: 1.8rem; color: #1E3A8A; font-weight: 700;">{{ $totalProducts ?? 150 }}</p>
+                        <p class="mb-0 text-muted small">Sản Phẩm</p>
+                        <h5 class="mb-0 fw-bold">{{ $totalProducts }}</h5>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card shadow-lg rounded-3 p-4 animate__animated animate__fadeIn" style="background: linear-gradient(135deg, #10B981, #6EE7B7); border: none;">
+            <div class="card border-0 rounded-3 p-3 bg-white shadow-sm">
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-cart4" style="font-size: 2.8rem; color: #1E3A8A; margin-right: 20px;"></i>
+                    <i class="bi bi-cart4 fs-3 text-success me-3"></i>
                     <div>
-                        <h5 class="mb-1" style="color: #1E3A8A; font-weight: 600; text-transform: uppercase;">Total Orders</h5>
-                        <p class="mb-0" style="font-size: 1.8rem; color: #1E3A8A; font-weight: 700;">{{ $totalOrders ?? 75 }}</p>
+                        <p class="mb-0 text-muted small">Đơn Hàng</p>
+                        <h5 class="mb-0 fw-bold">{{ $totalOrders }}</h5>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card shadow-lg rounded-3 p-4 animate__animated animate__fadeIn" style="background: linear-gradient(135deg, #3B82F6, #93C5FD); border: none;">
+            <div class="card border-0 rounded-3 p-3 bg-white shadow-sm">
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-people" style="font-size: 2.8rem; color: #1E3A8A; margin-right: 20px;"></i>
+                    <i class="bi bi-people fs-3 text-info me-3"></i>
                     <div>
-                        <h5 class="mb-1" style="color: #1E3A8A; font-weight: 600; text-transform: uppercase;">Total Users</h5>
-                        <p class="mb-0" style="font-size: 1.8rem; color: #1E3A8A; font-weight: 700;">{{ $totalUsers ?? 200 }}</p>
+                        <p class="mb-0 text-muted small">Người Dùng</p>
+                        <h5 class="mb-0 fw-bold">{{ $totalUsers }}</h5>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card shadow-lg rounded-3 p-4 animate__animated animate__fadeIn" style="background: linear-gradient(135deg, #EF4444, #FCA5A5); border: none;">
+            <div class="card border-0 rounded-3 p-3 bg-white shadow-sm">
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-currency-dollar" style="font-size: 2.8rem; color: #1E3A8A; margin-right: 20px;"></i>
+                    <i class="bi bi-currency-dollar fs-3 text-warning me-3"></i>
                     <div>
-                        <h5 class="mb-1" style="color: #1E3A8A; font-weight: 600; text-transform: uppercase;">Revenue</h5>
-                        <p class="mb-0" style="font-size: 1.8rem; color: #1E3A8A; font-weight: 700;">{{ $revenue ?? '5,000,000' }} đ</p>
+                        <p class="mb-0 text-muted small">Doanh Thu</p>
+                        <h5 class="mb-0 fw-bold">{{ number_format($revenue, 0, ',', '.') }} đ</h5>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Biểu đồ và danh sách -->
-    <div class="row g-4">
+    <!-- Biểu đồ và đơn hàng -->
+    <div class="row g-3">
         <!-- Biểu đồ doanh thu -->
         <div class="col-md-8">
-            <div class="card shadow-lg rounded-3 p-4 animate__animated animate__fadeInUp" style="background: #FFFFFF; border: none;">
-                <h5 class="mb-4" style="color: #1E3A8A; font-weight: 600; letter-spacing: 0.5px;">Revenue Overview</h5>
-                <canvas id="revenueChart" height="350"></canvas>
+            <div class="card border-0 rounded-3 p-4 bg-white shadow-sm">
+                <h6 class="fw-bold mb-3">Doanh Thu Theo Tháng</h6>
+                <canvas id="revenueChart" height="250"></canvas>
             </div>
         </div>
 
-        <!-- Danh sách đơn hàng gần đây -->
+        <!-- Đơn hàng gần đây -->
         <div class="col-md-4">
-            <div class="card shadow-lg rounded-3 p-4 animate__animated animate__fadeInUp" style="background: #FFFFFF; border: none; height: 100%;">
-                <h5 class="mb-4" style="color: #1E3A8A; font-weight: 600; letter-spacing: 0.5px;">Recent Orders</h5>
-                <ul class="list-unstyled" style="max-height: 350px; overflow-y: auto;">
-                    @for ($i = 1; $i <= 5; $i++)
-                        <li class="d-flex justify-content-between align-items-center p-3 mb-2 rounded-3" style="background: #F9FAFB; transition: all 0.3s ease;">
+            <div class="card border-0 rounded-3 p-4 bg-white shadow-sm">
+                <h6 class="fw-bold mb-3">Đơn Hàng Gần Đây</h6>
+                <ul class="list-group list-group-flush">
+                    @foreach ($recentOrders as $order)
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
                             <div>
-                                <strong style="color: #1E3A8A; font-weight: 600;">Order #{{ 1000 + $i }}</strong><br>
-                                <small style="color: #6B7280;">{{ now()->subDays($i)->format('d/m/Y') }}</small>
+                                <strong>#{{ $order->id }}</strong>
+                                <small class="d-block text-muted">{{ $order->created_at->format('d/m/Y') }}</small>
                             </div>
-                            <span class="badge" style="background: #10B981; padding: 8px 12px; border-radius: 20px; color: #fff; font-weight: 500;">Completed</span>
+                            <span class="badge rounded-pill {{ $order->status == 'completed' ? 'bg-success' : ($order->status == 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                                {{ $order->status == 'completed' ? 'Hoàn thành' : ($order->status == 'pending' ? 'Đang xử lý' : 'Thất bại') }}
+                            </span>
                         </li>
-                    @endfor
+                    @endforeach
                 </ul>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Animate.css -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // Biểu đồ doanh thu
     const ctx = document.getElementById('revenueChart').getContext('2d');
-    const revenueChart = new Chart(ctx, {
-        type: 'line',
+    new Chart(ctx, {
+        type: 'bar',
         data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            labels: @json($labels),
             datasets: [{
-                label: 'Revenue (đ)',
-                data: [1200000, 1900000, 3000000, 5000000, 2000000, 3000000],
-                borderColor: '#FBBF24',
-                backgroundColor: 'rgba(251, 191, 36, 0.2)',
-                fill: true,
-                tension: 0.4,
-                borderWidth: 4,
-                pointBackgroundColor: '#FBBF24',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5
+                label: 'Doanh Thu (đ)',
+                data: @json($revenueData),
+                backgroundColor: '#bfdbfe',
+                borderColor: '#3b82f6',
+                borderWidth: 1,
+                borderRadius: 4,
+                barThickness: 20
             }]
         },
         options: {
@@ -116,65 +118,80 @@
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        color: '#1E3A8A',
-                        font: { size: 14 },
+                        color: '#6b7280',
                         callback: function(value) {
                             return value.toLocaleString() + ' đ';
                         }
                     },
-                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    grid: { color: '#e5e7eb' }
                 },
                 x: {
-                    ticks: { color: '#1E3A8A', font: { size: 14 } },
+                    ticks: { color: '#6b7280' },
                     grid: { display: false }
                 }
             },
             plugins: {
-                legend: {
-                    labels: {
-                        color: '#1E3A8A',
-                        font: { size: 14 }
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1f2937',
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y.toLocaleString() + ' đ';
+                        }
                     }
                 }
-            },
-            animation: {
-                duration: 2000,
-                easing: 'easeOutQuart'
             }
         }
     });
 
-    // Hover effect cho danh sách đơn hàng
-    document.querySelectorAll('.list-unstyled li').forEach(item => {
-        item.addEventListener('mouseover', () => {
-            item.style.background = 'rgba(251, 191, 36, 0.1)';
-            item.style.transform = 'translateX(5px)';
+    // Hiệu ứng hover cho thẻ
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('mouseover', () => {
+            card.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
         });
-        item.addEventListener('mouseout', () => {
-            item.style.background = '#F9FAFB';
-            item.style.transform = 'translateX(0)';
+        card.addEventListener('mouseout', () => {
+            card.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
         });
     });
 </script>
 
 <style>
+    /* Tùy chỉnh giao diện */
+    body {
+        background-color: #f9fafb;
+    }
     .card {
-        transition: all 0.4s ease;
-        border-radius: 12px;
+        transition: box-shadow 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
-    .card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2) !important;
+    .list-group-item {
+        border: none;
+        background: transparent;
     }
-    .list-unstyled li {
-        transition: all 0.3s ease;
+    .badge {
+        padding: 5px 10px;
+        font-size: 0.8rem;
     }
-    .list-unstyled li:hover {
-        background: rgba(251, 191, 36, 0.1);
-        transform: translateX(5px);
+    .text-primary {
+        color: #3b82f6 !important;
     }
-    h2, h5 {
-        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    .text-success {
+        color: #22c55e !important;
+    }
+    .text-info {
+        color: #0ea5e9 !important;
+    }
+    .text-warning {
+        color: #f59e0b !important;
+    }
+    .bg-success {
+        background-color: #22c55e !important;
+    }
+    .bg-warning {
+        background-color: #f59e0b !important;
+    }
+    .bg-danger {
+        background-color: #ef4444 !important;
     }
 </style>
 @endsection

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\Order;
+use App\Models\Cart; // Ensure the Cart model is imported from the correct namespace
 
 class VNPayController extends Controller
 {
@@ -69,17 +70,27 @@ class VNPayController extends Controller
         $vnp_TxnRef = $request->input('vnp_TxnRef');
         $vnp_ResponseCode = $request->input('vnp_ResponseCode');
         $vnp_Amount = $request->input('vnp_Amount') / 100; // Convert to original amount
-        $vnp_TransactionNo = $request->input('vnp_TransactionNo');
 
         if ($vnp_ResponseCode == '00') {
             // Payment successful
-            $order = Order::create([
-                'user_id' => Auth::id(),
-                'address' => 'Địa chỉ mặc định',
-                'payment_method' => 'vnpay',
-                'total' => $vnp_Amount,
-                'status' => 'completed',
-            ]);
+            $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
+
+            if ($cartItems->isEmpty()) {
+                return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
+            }
+
+            $order = Order::createOrder(
+                Auth::id(),
+                'Địa chỉ mặc định',
+                'vnpay',
+                $cartItems,
+                0, // Shipping fee
+                0, // Discount
+                null // Notes
+            );
+
+            // Clear the cart
+            Cart::where('user_id', Auth::id())->delete();
 
             return redirect()->route('user.thankyou')->with('success', 'Thanh toán thành công!');
         } else {

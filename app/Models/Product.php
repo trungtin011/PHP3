@@ -9,27 +9,32 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $table = 'products';
     protected $fillable = [
-        'title', 'description', 'price', 'stock', 'status', 'category_id', 'brand_id', 'image', 'slug', 'main_image', 'additional_images'
+        'title', 'slug', 'description', 'price', 'weight', 'stock', 'status',
+        'category_id', 'brand_id', 'image', 'main_image', 'additional_images'
     ];
 
     protected $casts = [
-        'additional_images' => 'array', // Cast additional_images to array
+        'additional_images' => 'array',
     ];
 
     public function category()
     {
-        return $this->belongsTo(Category::class, 'category_id');
+        return $this->belongsTo(Category::class);
     }
 
     public function brand()
     {
-        return $this->belongsTo(Brand::class, 'brand_id');
+        return $this->belongsTo(Brand::class);
     }
 
-    public function carts()
+    public function reviews()
     {
-        return $this->hasMany(Cart::class);
+        return $this->hasMany(Review::class);
+    }
+ public function getAverageRatingAttribute()
+    {
+  
+        return $this->reviews()->avg('rating') ?: 0;
     }
 }

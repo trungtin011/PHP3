@@ -23,6 +23,7 @@
                     <tr>
                         <th style="padding: 15px;">ID</th>
                         <th style="padding: 15px;">Khách Hàng</th>
+                    
                         <th style="padding: 15px;">Tổng Tiền</th>
                         <th style="padding: 15px;">Trạng Thái</th>
                         <th style="padding: 15px;">Ngày Tạo</th>

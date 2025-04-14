@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use App\Models\Order;
+use App\Models\Cart;
 
 class MoMoController extends Controller
 {
@@ -18,6 +18,8 @@ class MoMoController extends Controller
         }
 
         $amount = $request->input('amount');
+
+        // Tạo đơn hàng tạm (chưa có order item)
         $order = Order::create([
             'user_id' => Auth::id(),
             'address' => 'Địa chỉ mặc định',
@@ -28,10 +30,8 @@ class MoMoController extends Controller
 
         $payUrl = $this->generateMomoUrl($order, $amount);
 
-        // Log MoMo URL
         Log::info("Redirecting to MoMo: $payUrl");
 
-        // Redirect to MoMo
         return redirect()->away($payUrl);
     }
 
@@ -43,16 +43,10 @@ class MoMoController extends Controller
         $endpoint = env('MOMO_URL', 'https://test-payment.momo.vn/v2/gateway/api/create');
         $returnUrl = route('momo.callback');
 
-        if (empty($partnerCode) || empty($accessKey) || empty($secretKey)) {
-            Log::error('MoMo configuration is missing in .env');
-            abort(500, 'Cấu hình MoMo không hợp lệ');
-        }
-
-        $orderId = $order->id . 'MOMOPAY' . rand(10000, 99999);
-        $orderInfo = "Thanh toán đơn hàng #$order->id";
+        $orderId = $order->id . '-MOMOPAY-' . rand(10000, 99999);
+        $orderInfo = "Thanh toán đơn hàng #{$order->id}";
         $requestId = $partnerCode . time();
-        // $requestType = "captureWallet";
-        $requestType = "payWithATM"; // Hoặc "payWithMethod" nếu bạn có hỗ trợ đa phương thức
+        $requestType = "payWithATM";
         $extraData = "";
 
         $rawSignature = "accessKey=$accessKey" .
@@ -123,13 +117,20 @@ class MoMoController extends Controller
         Log::info('MoMo Callback Data: ', $data);
 
         if (!isset($data['orderId']) || !isset($data['resultCode'])) {
-            Log::error('Invalid MoMo callback data', $data);
             return redirect()->route('user.checkout')->with('error', 'Dữ liệu callback không hợp lệ');
         }
 
-        $orderIdParts = explode('MOMOPAY', $data['orderId']);
+        // Tách orderId gốc
+        $orderIdParts = explode('-MOMOPAY-', $data['orderId']);
         $originalOrderId = $orderIdParts[0];
 
+        // Tìm lại đơn hàng
+        $order = Order::find($originalOrderId);
+        if (!$order) {
+            return redirect()->route('user.checkout')->with('error', 'Không tìm thấy đơn hàng.');
+        }
+
+        // Kiểm tra chữ ký hợp lệ
         $rawSignature = "accessKey=" . env('MOMO_ACCESS_KEY') .
             "&amount={$data['amount']}" .
             "&extraData={$data['extraData']}" .
@@ -146,33 +147,38 @@ class MoMoController extends Controller
 
         $calculatedSignature = hash_hmac('sha256', $rawSignature, $secretKey);
 
-        if ($calculatedSignature === $data['signature']) {
-            $order = Order::find($originalOrderId);
+        if ($calculatedSignature === $data['signature'] && $data['resultCode'] == '0') {
+            // Thanh toán thành công
 
-            if ($order) {
-                if ($data['resultCode'] == '0') {
-                    $order->update(['status' => 'completed']);
-                    Mail::send('emails.order_confirmation', ['order' => $order], function ($message) use ($order) {
-                        $message->to($order->user->email)
-                                ->subject('Xác nhận đơn hàng #' . $order->id);
-                    });
-                    return redirect()->route('user.thankyou')->with('success', 'Thanh toán MoMo thành công!');
-                } else {
-                    $order->update(['status' => 'failed']);
-                    return redirect()->route('user.checkout')->with('error', 'Thanh toán MoMo không thành công.');
-                }
-            } else {
-                Log::error('Order not found', ['orderId' => $originalOrderId]);
-                return redirect()->route('user.checkout')->with('error', 'Không tìm thấy đơn hàng.');
+            $cartItems = Cart::with('product')->where('user_id', $order->user_id)->get();
+
+            if ($cartItems->isEmpty()) {
+                return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
             }
+
+            // Tạo OrderItem
+            foreach ($cartItems as $item) {
+                $order->items()->create([
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product_name, // ❌ bị null ở đây
+                    'product_image' => $item->product_image,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'total' => $item->total,
+                ]);
+            }
+            
+
+            // Cập nhật trạng thái
+            $order->status = 'pending';
+            $order->save();
+
+            // Xoá giỏ hàng
+            Cart::where('user_id', $order->user_id)->delete();
+
+            return redirect()->route('user.thankyou')->with('success', 'Thanh toán thành công!');
         } else {
-            Log::error('Invalid MoMo signature', [
-                'calculated' => $calculatedSignature,
-                'received' => $data['signature'],
-                'rawSignature' => $rawSignature
-            ]);
-            return redirect()->route('user.checkout')->with('error', 'Chữ ký không hợp lệ.');
+            return redirect()->route('user.checkout')->with('error', 'Thanh toán không thành công!');
         }
     }
 }
-
