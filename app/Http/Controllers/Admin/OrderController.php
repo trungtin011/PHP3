@@ -35,7 +35,7 @@ class OrderController extends Controller
             'status' => 'required|in:pending,processing,completed,canceled',
         ]);
 
-        $oldStatus = $order->status;
+        $oldStatus = $order->status;    
         $order->update(['status' => $request->status]);
 
         // Send email notification if the status has changed

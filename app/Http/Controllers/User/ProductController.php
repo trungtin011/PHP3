@@ -1,9 +1,10 @@
 <?php
-
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Category;
+use App\Models\Brand;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,26 +13,53 @@ class ProductController extends Controller
 {
     public function list(Request $request)
     {
-        $query = Product::where('status', 'in_stock');
+        $query = Product::where('status', 'in_stock')->with(['category', 'brand']);
 
-        if ($request->has('search') && $request->search) {
-            $query->where('title', 'like', '%' . $request->search . '%')
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
                   ->orWhere('description', 'like', '%' . $request->search . '%');
+            });
         }
 
-        $products = $query->paginate(9);
+        if ($request->filled('category')) {
+            $categoryId = $request->category;
+            $childCategoryIds = Category::where('parent_id', $categoryId)->pluck('id')->toArray();
+            $categoryIds = array_merge([$categoryId], $childCategoryIds);
+            $query->whereIn('category_id', $categoryIds);
+        }
 
-        return view('user.products.list', compact('products'));
+        if ($request->filled('brand')) {
+            $query->whereIn('brand_id', (array)$request->brand);
+        }
+
+        if ($request->filled('price_min') && $request->filled('price_max')) {
+            $priceMin = max(0, (int)$request->price_min);
+            $priceMax = (int)$request->price_max;
+            if ($priceMax > $priceMin) {
+                $query->whereBetween('price', [$priceMin, $priceMax]);
+            }
+        }
+
+        $categories = Category::whereNull('parent_id')->with('children')->get();
+        $brands = Brand::all();
+
+      
+        $products = $query->paginate(9)->appends($request->query());
+
+        return view('user.products.list', compact('products', 'categories', 'brands'));
     }
 
     public function show($slug)
     {
-        $product = Product::with('reviews.user')->where('slug', $slug)->firstOrFail();
+        $product = Product::with(['category', 'brand', 'reviews.user'])
+            ->where('slug', $slug)
+            ->firstOrFail();
 
         $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
             ->where('status', 'in_stock')
-            ->with('reviews')
+            ->with(['category', 'brand', 'reviews'])
             ->limit(4)
             ->get();
 
@@ -68,21 +96,4 @@ class ProductController extends Controller
 
         return redirect()->back()->with('success', 'Đánh giá của bạn đã được gửi.');
     }
-    public function export()
-    {
-        $products = Product::all();
-    
-        header("Content-Type: application/vnd.ms-excel");
-        header("Content-Disposition: attachment; filename=products.xls");
-    
-        echo "ID\tName\tPrice\tCategory\n";
-        foreach ($products as $product) {
-            echo "{$product->id}\t{$product->name}\t{$product->price}\t{$product->category->name}\n";
-        }
-        exit;
-    }
-    
-   
-   
-    
 }

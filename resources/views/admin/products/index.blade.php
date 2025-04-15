@@ -7,10 +7,16 @@
     <div class="card shadow-sm border-0 rounded-3" style="background: #fff; padding: 20px;">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 style="color: #ee4d2d; font-weight: bold; font-size: 24px; margin: 0;">Quản Lý Sản Phẩm</h2>
-            <a href="{{ route('admin.products.create') }}" class="btn"
-                style="background: #ee4d2d; color: white; font-weight: 600; padding: 10px 20px; border-radius: 5px;">
-                <i class="bi bi-plus-lg me-2"></i>Thêm Sản Phẩm
-            </a>
+            <div>
+                <a href="{{ route('admin.products.create') }}" class="btn me-2"
+                    style="background: #ee4d2d; color: white; font-weight: 600; padding: 10px 20px; border-radius: 5px;">
+                    <i class="bi bi-plus-lg me-2"></i>Thêm Sản Phẩm
+                </a>
+                <a href="{{ route('admin.products.import') }}" class="btn"
+                    style="background: #17a2b8; color: white; font-weight: 600; padding: 10px 20px; border-radius: 5px;">
+                    <i class="bi bi-file-earmark-excel me-2"></i>Nhập Excel
+                </a>
+            </div>
         </div>
 
         @if(session('success'))

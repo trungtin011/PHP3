@@ -5,7 +5,9 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Models\Order;
 use App\Models\Cart;
 
@@ -18,21 +20,42 @@ class MoMoController extends Controller
         }
 
         $amount = $request->input('amount');
+        $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
 
-        // Tạo đơn hàng tạm (chưa có order item)
-        $order = Order::create([
-            'user_id' => Auth::id(),
-            'address' => 'Địa chỉ mặc định',
-            'payment_method' => 'momo',
-            'total' => $amount,
-            'status' => 'pending',
-        ]);
+        if ($cartItems->isEmpty()) {
+            return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
+        }
 
-        $payUrl = $this->generateMomoUrl($order, $amount);
+        // Kiểm tra tồn kho trước khi tạo đơn hàng
+        foreach ($cartItems as $item) {
+            if (!$item->product || $item->product->stock < $item->quantity) {
+                return redirect()->route('user.checkout')->with('error', "Sản phẩm {$item->product_name} không đủ số lượng trong kho.");
+            }
+        }
 
-        Log::info("Redirecting to MoMo: $payUrl");
+        try {
+            DB::beginTransaction();
 
-        return redirect()->away($payUrl);
+            $order = Order::create([
+                'user_id' => Auth::id(),
+                'address' => 'Địa chỉ mặc định',
+                'payment_method' => 'momo',
+                'total' => $amount,
+                'status' => 'pending',
+            ]);
+
+            DB::commit();
+
+            $payUrl = $this->generateMomoUrl($order, $amount);
+
+            Log::info("Redirecting to MoMo: $payUrl");
+
+            return redirect()->away($payUrl);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi tạo đơn hàng MoMo: ' . $e->getMessage());
+            return redirect()->route('user.checkout')->with('error', 'Có lỗi xảy ra khi tạo đơn hàng.');
+        }
     }
 
     private function generateMomoUrl($order, $amount)
@@ -120,17 +143,14 @@ class MoMoController extends Controller
             return redirect()->route('user.checkout')->with('error', 'Dữ liệu callback không hợp lệ');
         }
 
-        // Tách orderId gốc
         $orderIdParts = explode('-MOMOPAY-', $data['orderId']);
         $originalOrderId = $orderIdParts[0];
 
-        // Tìm lại đơn hàng
         $order = Order::find($originalOrderId);
         if (!$order) {
             return redirect()->route('user.checkout')->with('error', 'Không tìm thấy đơn hàng.');
         }
 
-        // Kiểm tra chữ ký hợp lệ
         $rawSignature = "accessKey=" . env('MOMO_ACCESS_KEY') .
             "&amount={$data['amount']}" .
             "&extraData={$data['extraData']}" .
@@ -148,36 +168,88 @@ class MoMoController extends Controller
         $calculatedSignature = hash_hmac('sha256', $rawSignature, $secretKey);
 
         if ($calculatedSignature === $data['signature'] && $data['resultCode'] == '0') {
-            // Thanh toán thành công
-
             $cartItems = Cart::with('product')->where('user_id', $order->user_id)->get();
 
             if ($cartItems->isEmpty()) {
+                $order->status = 'canceled';
+                $order->save();
                 return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
             }
 
-            // Tạo OrderItem
-            foreach ($cartItems as $item) {
-                $order->items()->create([
-                    'product_id' => $item->product_id,
-                    'product_name' => $item->product_name, // ❌ bị null ở đây
-                    'product_image' => $item->product_image,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'total' => $item->total,
+            try {
+                DB::beginTransaction();
+
+                // Kiểm tra tồn kho
+                foreach ($cartItems as $item) {
+                    if (!$item->product || $item->product->stock < $item->quantity) {
+                        throw new \Exception("Sản phẩm {$item->product_name} không đủ số lượng trong kho.");
+                    }
+                }
+
+                // Tạo các mục đơn hàng
+                foreach ($cartItems as $item) {
+                    $order->items()->create([
+                        'product_id' => $item->product_id,
+                        'product_name' => $item->product_name,
+                        'product_image' => $item->product_image,
+                        'quantity' => $item->quantity,
+                        'price' => $item->price,
+                        'total' => $item->total,
+                    ]);
+                }
+
+                // Trừ tồn kho
+                foreach ($cartItems as $item) {
+                    $product = $item->product;
+                    $oldStock = $product->stock;
+                    $product->stock -= $item->quantity;
+                    $product->status = $product->stock > 0 ? 'in_stock' : 'out_of_stock';
+                    $product->save();
+                    Log::info("Trừ tồn kho sản phẩm ID {$product->id}: từ {$oldStock} xuống {$product->stock}");
+                }
+
+                // Cập nhật trạng thái đơn hàng
+                $order->status = 'completed';
+                $order->save();
+
+                // Xóa giỏ hàng
+                Cart::where('user_id', $order->user_id)->delete();
+
+                DB::commit();
+
+                // Gửi email xác nhận
+                try {
+                    $user = $order->user;
+                    Log::info("Bắt đầu gửi mail đến: " . $user->email);
+
+                    Mail::send('emails.order-confirmation', [
+                        'user' => $user,
+                        'order' => $order,
+                        'cartItems' => $cartItems
+                    ], function ($message) use ($user) {
+                        $message->to($user->email)
+                                ->subject('Xác nhận đơn hàng thành công');
+                    });
+
+                    Log::info("Đã gửi mail xác nhận đến: " . $user->email);
+                } catch (\Exception $e) {
+                    Log::error('Lỗi gửi mail: ' . $e->getMessage());
+                }
+
+                return redirect()->route('user.thankyou')->with([
+                    'success' => 'Thanh toán thành công!',
+                    'order_id' => $order->id
                 ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $order->status = 'canceled';
+                $order->save();
+                Log::error('Lỗi xử lý đơn hàng MoMo: ' . $e->getMessage());
+                return redirect()->route('user.checkout')->with('error', 'Có lỗi xảy ra khi xử lý đơn hàng.');
             }
-            
-
-            // Cập nhật trạng thái
-            $order->status = 'pending';
-            $order->save();
-
-            // Xoá giỏ hàng
-            Cart::where('user_id', $order->user_id)->delete();
-
-            return redirect()->route('user.thankyou')->with('success', 'Thanh toán thành công!');
         } else {
+            $order->status = 'canceled';
+            $order->save();
             return redirect()->route('user.checkout')->with('error', 'Thanh toán không thành công!');
         }
     }

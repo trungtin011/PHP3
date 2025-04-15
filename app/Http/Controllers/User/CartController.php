@@ -117,29 +117,29 @@ class CartController extends Controller
 
         if ($response->successful()) {
             $services = $response->json()['data'] ?? [];
-            return $services[0]['service_id'] ?? null; // Use the first available service_id
+            return $services[0]['service_id'] ?? null; 
         }
 
-        return null; // Return null if no service_id is found
+        return null; 
     }
 
     private function getShippingFee($toDistrictId, $weight)
     {
-        $fromDistrictId = 1450; // Example: Quận 1, TP.HCM
+        $fromDistrictId = 1450; 
         $serviceId = $this->getServiceId($fromDistrictId, $toDistrictId);
 
         if (!$serviceId) {
-            return 0; // Return 0 if no valid service_id is found
+            return 0; 
         }
 
         $response = Http::withHeaders([
-            'Token' => '7dd71557-160d-11f0-95d0-0a92b8726859', // Ensure the correct token is used
+            'Token' => '7dd71557-160d-11f0-95d0-0a92b8726859', 
             'ShopId' => '2509766',
         ])->post('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee', [
             'from_district_id' => $fromDistrictId,
             'to_district_id' => $toDistrictId,
             'service_id' => $serviceId,
-            'weight' => $weight, // Trọng lượng (gram)
+            'weight' => $weight, 
             'length' => 20,
             'width' => 20,
             'height' => 10,
@@ -150,7 +150,7 @@ class CartController extends Controller
             return $data['data']['total'] ?? 0;
         }
 
-        return 0; // Trả về 0 nếu có lỗi
+        return 0; 
     }
 
     public function checkout(Request $request)
@@ -165,12 +165,10 @@ class CartController extends Controller
         $total = $cartItems->sum('total');
         $discount = 0;
 
-        // Tính tổng trọng lượng sản phẩm
         $totalWeight = $cartItems->sum(function ($item) {
             return $item->product->weight * $item->quantity;
         });
 
-        // Lấy phí vận chuyển từ API GHN
         $shippingFee = 0;
         if ($addresses->isNotEmpty()) {
             $defaultAddress = $addresses->where('default', true)->first();
@@ -209,21 +207,18 @@ class CartController extends Controller
         $paymentMethod = $request->input('payment_method', 'COD');
 
         if ($paymentMethod === 'COD') {
-            // Save order immediately for COD
             $order = \App\Models\Order::createOrder(
                 Auth::id(),
                 $request->input('address', 'Địa chỉ mặc định'),
                 $paymentMethod,
                 $cartItems,
-                0, // Shipping fee
-                0, // Discount
-                $request->input('notes') // Notes
+                0, 
+                0, 
+                $request->input('notes') 
             );
 
-            // Clear the cart
             Cart::where('user_id', Auth::id())->delete();
 
-            // Send email confirmation
             Mail::send('emails.order_confirmation', ['order' => $order], function ($message) use ($order) {
                 $message->to($order->user->email)
                         ->subject('Xác nhận đơn hàng #' . $order->id);
@@ -232,7 +227,6 @@ class CartController extends Controller
             return redirect()->route('user.thankyou')->with('success', 'Đơn hàng của bạn đã được đặt thành công.');
         }
 
-        // Redirect to payment gateways for VNPay or MoMo
         if ($paymentMethod === 'vnpay') {
             return redirect()->route('vnpay.payment')->with('amount', $cartItems->sum('total'));
         } elseif ($paymentMethod === 'momo') {

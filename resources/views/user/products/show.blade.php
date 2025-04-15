@@ -9,7 +9,7 @@
             <!-- Hình ảnh chính -->
             <div class="position-relative mb-3" style="height: 400px; background-color: #f5f5f5;">
                 <img src="{{ asset('storage/' . $product->main_image) }}" 
-                     class="img-fluid rounded" 
+                     class="img-fluid rounded main-image" 
                      alt="{{ $product->title }}" 
                      style="object-fit: contain; max-height: 100%;">
             </div>
@@ -17,14 +17,14 @@
             <!-- Hình ảnh phụ -->
             @if(!empty($product->additional_images))
                 <div class="d-flex flex-wrap gap-2">
-                    @foreach($product->additional_images as $image)
-                        <div class="border rounded" style="width: 80px; height: 80px; cursor: pointer;">
-                            <img src="{{ asset('storage/' . $image) }}" 
-                                 class="img-fluid w-100 h-100" 
-                                 alt="Additional Image" 
-                                 style="object-fit: cover;">
-                        </div>
-                    @endforeach
+                @foreach($product->additional_images as $image)
+                    <div class="border rounded product-image-thumbnail" style="width: 80px; height: 80px; cursor: pointer;">
+                        <img src="{{ asset('storage/' . $image) }}" 
+                             class="img-fluid w-100 h-100" 
+                             alt="Additional Image" 
+                             style="object-fit: cover;">
+                    </div>
+                @endforeach
                 </div>
             @endif
         </div>
@@ -88,8 +88,8 @@
             <!-- Nút hành động -->
             <div class="d-flex gap-3">
                 <a href="{{ route('products.list') }}" 
-                   class="btn btn-outline-secondary px-4 py-2" 
-                   style="color: #333; border-color: #ccc; background-color: #fff; transition: all 0.3s;">
+                   class="px-4 py-1" 
+                   style="color: #333; border: 1px solid #000; border-radius: 50px; background-color: #fff; transition: all 0.3s; display: flex; align-items: center; justify-content: center; height: 40px;">
                     Quay lại
                 </a>
                 <form action="{{ route('user.cart.add', $product->id) }}" method="POST">
@@ -215,34 +215,17 @@
                             <div class="card h-100 border-0 shadow-sm">
                                 <div class="position-relative" style="height: 150px; background-color: #f5f5f5;">
                                     <img src="{{ asset('storage/' . $related->main_image) }}" 
-                                         class="card-img-top" 
+                                         class="card-img-top img-fluid" 
                                          alt="{{ $related->title }}" 
                                          style="object-fit: contain; max-height: 100%;">
                                 </div>
-                                <div class="card-body p-2">
-                                    <h6 class="card-title" style="font-size: 0.9rem; line-height: 1.2; height: 2.4rem; overflow: hidden;">
-                                        {{ Str::limit($related->title, 50) }}
-                                    </h6>
-                                    <div class="text-danger fw-bold" style="font-size: 1rem;">
-                                        @if($related->discount > 0)
-                                            {{ number_format($related->price * (1 - $related->discount/100), 0, ',', '.') }} đ
-                                            <small class="text-muted text-decoration-line-through">
-                                                {{ number_format($related->price, 0, ',', '.') }} đ
-                                            </small>
-                                        @else
-                                            {{ number_format($related->price, 0, ',', '.') }} đ
-                                        @endif
-                                    </div>
-                                    <div class="d-flex align-items-center gap-1" style="font-size: 0.8rem; color: #666;">
-                                        @if ($related->average_rating > 0)
-                                            @for ($i = 1; $i <= 5; $i++)
-                                                <i class="bi bi-star{{ $i <= round($related->average_rating) ? '-fill text-warning' : '' }}"></i>
-                                            @endfor
-                                            <span>({{ $related->reviews->count() }})</span>
-                                        @else
-                                            <span>Chưa có đánh giá</span>
-                                        @endif
-                                    </div>
+                                <div class="card-body">
+                                    <h5 class="card-title" style="font-size: 1rem; color: #333;">
+                                        {{ $related->title }}
+                                    </h5>
+                                    <p class="card-text" style="font-size: 0.875rem; color: #666;">
+                                        {{ number_format($related->price, 0, ',', '.') }} đ
+                                    </p>
                                 </div>
                             </div>
                         </a>
@@ -252,6 +235,18 @@
         </div>
     @endif
 </div>
+
+<script>
+    // Chuyển đổi hình ảnh chính khi nhấp vào hình ảnh phụ
+    document.querySelectorAll('.product-image-thumbnail').forEach(function(thumbnail) {
+        thumbnail.addEventListener('click', function() {
+            const mainImage = document.querySelector('.main-image');
+            mainImage.src = thumbnail.querySelector('img').src;
+        });
+    });
+</script>
+@endsection
+
 
 <style>
 /* CSS cho đánh giá sao */
@@ -305,4 +300,3 @@
     transition: box-shadow 0.2s;
 }
 </style>
-@endsection
