@@ -25,10 +25,24 @@
             <textarea class="form-control" id="description" name="description">{{ $product->description }}</textarea>
         </div>
 
-        <div class="mb-3">
-            <label for="price" class="form-label">Price</label>
-            <input type="number" class="form-control" id="price" name="price" value="{{ $product->price }}" required>
-        </div>
+    
+
+        <!-- Thêm sau trường price -->
+<div class="mb-3">
+    <label for="price" class="form-label">Giá bán <span class="text-danger">*</span></label>
+    <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price', $product->price) }}" required>
+    @error('price')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="mb-3">
+    <label for="import_price" class="form-label">Giá nhập</label>
+    <input type="number" step="0.01" class="form-control @error('import_price') is-invalid @enderror" id="import_price" name="import_price" value="{{ old('import_price', $product->import_price) }}">
+    @error('import_price')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
 
         <div class="mb-3">
             <label for="stock" class="form-label">Stock</label>

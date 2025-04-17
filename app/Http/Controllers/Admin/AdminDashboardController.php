@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-use App\Http\Controllers\Controller;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Order;
@@ -13,51 +13,60 @@ class AdminDashboardController extends Controller
 {
     public function index()
     {
-        // Tổng sản phẩm
-        $totalProducts = Product::count();
 
-        // Tổng đơn hàng
-        $totalOrders = Order::count();
+        $stats = $this->getBasicStats();
 
-        // Tổng người dùng
-        $totalUsers = User::count();
+    
+        [$revenueData, $labels] = $this->getMonthlyRevenueData();
 
-        // Tổng doanh thu (chỉ tính đơn hàng completed)
-        $revenue = Order::where('status', 'completed')
-            ->sum('total');
 
-        // Doanh thu theo tháng (từ tháng 1 đến tháng 4 năm 2025)
-        $monthlyRevenue = Order::select(
+        $recentOrders = $this->getRecentOrders(5);
+
+        return view('admin.dashboard', array_merge($stats, [
+            'revenueData' => $revenueData,
+            'labels' => $labels,
+            'recentOrders' => $recentOrders,
+        ]));
+    }
+
+    private function getBasicStats(): array
+    {
+        return [
+            'totalProducts' => Product::count(),
+            'totalOrders' => Order::count(),
+            'totalUsers' => User::count(),
+            'revenue' => Order::where('status', 'completed')->sum('total'),
+        ];
+    }
+
+ 
+    private function getMonthlyRevenueData(): array
+    {
+        $rawRevenue = Order::select(
                 DB::raw('MONTH(created_at) as month'),
                 DB::raw('SUM(total) as revenue')
             )
             ->where('status', 'completed')
             ->whereYear('created_at', 2025)
             ->groupBy(DB::raw('MONTH(created_at)'))
-            ->pluck('revenue', 'month')
+            ->pluck('revenue', 'month');
+
+        $labels = ['Jan', 'Feb', 'Mar', 'Apr'];
+        $revenueData = collect(range(1, 4))
+            ->map(function ($month) use ($rawRevenue) {
+                return $rawRevenue->get($month, 0);
+            })
             ->toArray();
 
-        // Tạo mảng dữ liệu cho biểu đồ (mặc định 0 cho các tháng không có doanh thu)
-        $revenueData = [];
-        $labels = ['Jan', 'Feb', 'Mar', 'Apr'];
-        for ($i = 1; $i <= 4; $i++) {
-            $revenueData[] = isset($monthlyRevenue[$i]) ? $monthlyRevenue[$i] : 0;
-        }
+        return [$revenueData, $labels];
+    }
 
-        // 5 đơn hàng gần đây
-        $recentOrders = Order::with('user')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
+
+    private function getRecentOrders(int $limit = 5)
+    {
+        return Order::with('user')
+            ->orderByDesc('created_at')
+            ->take($limit)
             ->get();
-
-        return view('admin.dashboard', compact(
-            'totalProducts',
-            'totalOrders',
-            'totalUsers',
-            'revenue',
-            'revenueData',
-            'labels',
-            'recentOrders'
-        ));
     }
 }

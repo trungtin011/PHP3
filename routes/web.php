@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use App\Http\Controllers\User\CodController;
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -52,9 +53,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/cart/update/{cartId}', [CartController::class, 'update'])->name('user.cart.update');
     Route::put('/cart/update-quantity/{cartId}', [CartController::class, 'updateQuantity'])->name('user.cart.updateQuantity');
     Route::delete('/cart/remove/{cartId}', [CartController::class, 'remove'])->name('user.cart.remove');
-    Route::get('/checkout', [CartController::class, 'checkout'])->name('user.checkout');
-    Route::post('/order/place', [CartController::class, 'placeOrder'])->name('user.order.place');
+    Route::match(['get', 'post'], '/checkout', [CartController::class, 'checkout'])->name('user.checkout');
     Route::get('/thank-you', [CartController::class, 'thankYou'])->name('user.thankyou');
+
+    Route::post('/order/place', [CodController::class, 'placeOrder'])->name('user.order.place');
 
     Route::post('/vnpay/payment', [\App\Http\Controllers\User\VNPayController::class, 'processPayment'])->name('vnpay.payment');
     Route::get('/vnpay/callback', [\App\Http\Controllers\User\VNPayController::class, 'callback'])->name('vnpay.callback');

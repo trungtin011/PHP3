@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
-        'title', 'slug', 'description', 'price', 'weight', 'stock', 'status',
+        'title', 'slug', 'description', 'import_price', 'price', 'weight', 'stock', 'status',
         'category_id', 'brand_id', 'image', 'main_image', 'additional_images',
     ];
 
     protected $casts = [
-        'additional_images' => 'array', // Automatically decode JSON to array
+        'additional_images' => 'array', 
     ];
 
     public function category()

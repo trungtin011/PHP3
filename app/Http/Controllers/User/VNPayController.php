@@ -1,15 +1,17 @@
 <?php
-
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\Address;
+use App\Models\Cart;
+use App\Models\Coupon;
+use App\Models\Order;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use App\Models\Order;
-use App\Models\Cart;
 
 class VNPayController extends Controller
 {
@@ -19,47 +21,91 @@ class VNPayController extends Controller
             return redirect()->route('login')->with('error', 'Bạn cần đăng nhập để thanh toán.');
         }
 
-        $orderId = uniqid();
-        session(['vnp_TxnRef' => $orderId]);
+        $amount = $request->input('amount');
+        $addressId = $request->input('address_id');
+        $notes = $request->input('notes');
+        $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
+
+        if ($cartItems->isEmpty()) {
+            return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
+        }
+
+        // Kiểm tra địa chỉ
+        $address = Address::where('user_id', Auth::id())->where('id', $addressId)->first();
+        if (!$address) {
+            return redirect()->route('user.checkout')->with('error', 'Địa chỉ giao hàng không hợp lệ.');
+        }
+
+        // Kiểm tra tồn kho
+        foreach ($cartItems as $item) {
+            if (!$item->product || $item->product->stock < $item->quantity) {
+                return redirect()->route('user.checkout')->with('error', "Sản phẩm {$item->product_name} không đủ số lượng trong kho.");
+            }
+        }
+
+        // Lưu order_data vào session
+        $orderData = [
+            'user_id' => Auth::id(),
+            'address_id' => $addressId,
+            'address' => $address->address,
+            'cart_items' => $cartItems->map(function ($item) {
+                return [
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product_name,
+                    'product_image' => $item->product_image,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'total' => $item->total,
+                ];
+            })->toArray(),
+            'total' => $cartItems->sum('total'),
+            'total_after_discount' => $amount,
+            'shipping_fee' => 0,
+            'discount' => session('applied_coupon') ? session('applied_coupon')['discount'] : 0,
+            'coupon_code' => session('applied_coupon') ? session('applied_coupon')['code'] : null,
+            'notes' => $notes,
+        ];
+        session(['order_data' => $orderData]);
+
+        $vnp_TxnRef = uniqid();
+        session(['vnp_TxnRef' => $vnp_TxnRef]);
 
         $vnp_TmnCode = config('vnpay.tmn_code');
         $vnp_HashSecret = config('vnpay.hash_secret');
         $vnp_Url = config('vnpay.url');
         $vnp_ReturnUrl = route('vnpay.callback');
 
-        $vnp_OrderInfo = "Thanh toán đơn hàng #" . $orderId;
-        $vnp_Amount = $request->amount * 100;
-        $vnp_Locale = config('vnpay.locale');
+        $vnp_OrderInfo = "Thanh toán đơn hàng #{$vnp_TxnRef}";
+        $vnp_Amount = $amount * 100;
+        $vnp_Locale = config('vnpay.locale', 'vn');
         $vnp_IpAddr = $request->ip();
         $vnp_CreateDate = date('YmdHis');
 
         $inputData = [
-            "vnp_Version" => config('vnpay.version'),
-            "vnp_TmnCode" => $vnp_TmnCode,
-            "vnp_Amount" => $vnp_Amount,
-            "vnp_Command" => config('vnpay.command'),
-            "vnp_CreateDate" => $vnp_CreateDate,
-            "vnp_CurrCode" => config('vnpay.currency'),
-            "vnp_IpAddr" => $vnp_IpAddr,
-            "vnp_Locale" => $vnp_Locale,
-            "vnp_OrderInfo" => $vnp_OrderInfo,
-            "vnp_OrderType" => "billpayment",
-            "vnp_ReturnUrl" => $vnp_ReturnUrl,
-            "vnp_TxnRef" => $orderId,
+            'vnp_Version' => config('vnpay.version', '2.1.0'),
+            'vnp_TmnCode' => $vnp_TmnCode,
+            'vnp_Amount' => $vnp_Amount,
+            'vnp_Command' => config('vnpay.command', 'pay'),
+            'vnp_CreateDate' => $vnp_CreateDate,
+            'vnp_CurrCode' => config('vnpay.currency', 'VND'),
+            'vnp_IpAddr' => $vnp_IpAddr,
+            'vnp_Locale' => $vnp_Locale,
+            'vnp_OrderInfo' => $vnp_OrderInfo,
+            'vnp_OrderType' => 'billpayment',
+            'vnp_ReturnUrl' => $vnp_ReturnUrl,
+            'vnp_TxnRef' => $vnp_TxnRef,
         ];
 
         ksort($inputData);
-        $query = "";
-        $hashdata = "";
+        $hashdata = '';
         foreach ($inputData as $key => $value) {
-            $hashdata .= ($hashdata ? '&' : '') . urlencode($key) . "=" . urlencode($value);
-            $query .= urlencode($key) . "=" . urlencode($value) . '&';
+            $hashdata .= ($hashdata ? '&' : '') . urlencode($key) . '=' . urlencode($value);
         }
 
-        $vnp_Url .= "?" . $query;
         $vnpSecureHash = hash_hmac('sha512', $hashdata, $vnp_HashSecret);
-        $vnp_Url .= 'vnp_SecureHash=' . $vnpSecureHash;
+        $inputData['vnp_SecureHash'] = $vnpSecureHash;
 
+        $vnp_Url .= '?' . http_build_query($inputData);
         Log::info("Redirecting to VNPay: $vnp_Url");
 
         return redirect()->away($vnp_Url);
@@ -70,106 +116,112 @@ class VNPayController extends Controller
         $vnp_TxnRef = $request->input('vnp_TxnRef');
         $vnp_ResponseCode = $request->input('vnp_ResponseCode');
         $vnp_Amount = $request->input('vnp_Amount') / 100;
+        $vnp_SecureHash = $request->input('vnp_SecureHash');
 
-        if ($vnp_ResponseCode == '00') {
-            $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
+        Log::info("VNPay callback received: TxnRef=$vnp_TxnRef, ResponseCode=$vnp_ResponseCode, Amount=$vnp_Amount");
 
-            if ($cartItems->isEmpty()) {
-                return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
+        $inputData = $request->except('vnp_SecureHash', 'vnp_SecureHashType');
+        ksort($inputData);
+        $hashdata = '';
+        foreach ($inputData as $key => $value) {
+            $hashdata .= ($hashdata ? '&' : '') . urlencode($key) . '=' . urlencode($value);
+        }
+        $vnp_HashSecret = config('vnpay.hash_secret');
+        $calculatedHash = hash_hmac('sha512', $hashdata, $vnp_HashSecret);
+
+        if ($vnp_SecureHash !== $calculatedHash) {
+            Log::error("Invalid VNPay secure hash, TxnRef: $vnp_TxnRef");
+            return redirect()->route('user.checkout')->with('error', 'Chữ ký thanh toán không hợp lệ.');
+        }
+
+        if (session('vnp_TxnRef') !== $vnp_TxnRef) {
+            Log::error("Invalid TxnRef in session, TxnRef: $vnp_TxnRef");
+            return redirect()->route('user.checkout')->with('error', 'Mã giao dịch không hợp lệ.');
+        }
+
+        if ($vnp_ResponseCode === '00') {
+            $orderData = session('order_data');
+            if (!$orderData || $orderData['user_id'] !== Auth::id()) {
+                Log::error("Invalid or missing order_data in session, TxnRef: $vnp_TxnRef");
+                return redirect()->route('user.checkout')->with('error', 'Dữ liệu đơn hàng không hợp lệ.');
+            }
+
+            if (abs($orderData['total_after_discount'] - $vnp_Amount) > 100) {
+                Log::error("Mismatched amount: Session={$orderData['total_after_discount']}, VNPay=$vnp_Amount, TxnRef: $vnp_TxnRef");
+                return redirect()->route('user.checkout')->with('error', 'Số tiền thanh toán không khớp.');
             }
 
             try {
                 DB::beginTransaction();
 
-                // Kiểm tra tồn kho
-                foreach ($cartItems as $item) {
-                    if (!$item->product || $item->product->stock < $item->quantity) {
-                        throw new \Exception("Sản phẩm {$item->product_name} không đủ số lượng trong kho.");
+                $cartItems = collect($orderData['cart_items'])->map(function ($item) {
+                    return (object) $item;
+                });
+
+                $order = Order::createOrder(
+                    Auth::id(),
+                    $orderData['address'],
+                    'vnpay',
+                    $cartItems,
+                    $orderData['shipping_fee'] ?? 0,
+                    $orderData['discount'] ?? 0,
+                    $orderData['notes'] ?? null
+                );
+
+                if (!empty($orderData['coupon_code'])) {
+                    $coupon = Coupon::where('code', $orderData['coupon_code'])->first();
+                    if ($coupon && $coupon->isValid()) {
+                        if ($coupon->used_count >= $coupon->usage_limit) {
+                            throw new \Exception("Mã giảm giá {$coupon->code} đã đạt giới hạn sử dụng.");
+                        }
+                        $order->coupon_code = $coupon->code;
+                        $order->save();
+                        $coupon->increment('used_count');
+                        Log::info("Increased used_count for coupon: {$coupon->code}, used_count: {$coupon->used_count}");
                     }
                 }
 
-                // Tạo đơn hàng với trạng thái completed
-                $order = Order::createOrder(
-                    Auth::id(),
-                    'Địa chỉ mặc định',
-                    'vnpay',
-                    $cartItems,
-                    0,
-                    0,
-                    null
-                );
-
-                // Đảm bảo trạng thái là completed
                 $order->status = 'completed';
                 $order->save();
 
-                // Trừ tồn kho
                 foreach ($cartItems as $item) {
-                    $product = $item->product;
-                    $oldStock = $product->stock;
-                    $product->stock -= $item->quantity;
-                    $product->status = $product->stock > 0 ? 'in_stock' : 'out_of_stock';
-                    $product->save();
-                    Log::info("Trừ tồn kho sản phẩm ID {$product->id}: từ {$oldStock} xuống {$product->stock}");
+                    $product = Product::find($item->product_id);
+                    if ($product) {
+                        $oldStock = $product->stock;
+                        $product->stock -= $item->quantity;
+                        $product->status = $product->stock > 0 ? 'in_stock' : 'out_of_stock';
+                        $product->save();
+                        Log::info("Reduced stock for product ID {$product->id}: from {$oldStock} to {$product->stock}");
+                    }
                 }
 
-                // Xóa giỏ hàng
                 Cart::where('user_id', Auth::id())->delete();
 
                 DB::commit();
 
-                // Gửi email xác nhận đơn hàng
-                $emailSent = false;
                 try {
-                    $user = Auth::user();
-                    if (!$user->email) {
-                        throw new \Exception("Email người dùng không hợp lệ.");
-                    }
-
-                    $statusTranslations = [
-                        'pending' => 'Chờ xử lý',
-                        'processing' => 'Đang xử lý',
-                        'completed' => 'Hoàn thành',
-                        'canceled' => 'Đã hủy',
-                    ];
-
-                    Log::info("Bắt đầu gửi mail xác nhận đơn hàng #{$order->id} đến: {$user->email}");
-
-                    Mail::send('emails.order-confirmation', [
-                        'user' => $user,
-                        'order' => $order,
-                        'cartItems' => $cartItems,
-                        'statusTranslations' => $statusTranslations,
-                    ], function ($message) use ($user, $order) {
-                        $message->to($user->email)
-                                ->subject('Xác nhận đơn hàng thành công #' . $order->id);
+                    Mail::send('emails.order_confirmation', ['order' => $order], function ($message) use ($order) {
+                        $message->to($order->user->email)->subject('Xác nhận đơn hàng #' . $order->id);
                     });
-
-                    $emailSent = true;
-                    Log::info("Đã gửi mail xác nhận đơn hàng #{$order->id} đến: {$user->email}");
+                    Log::info("Sent order confirmation email for order #{$order->id}");
                 } catch (\Exception $e) {
-                    Log::error("Lỗi gửi mail xác nhận đơn hàng #{$order->id}: " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
+                    Log::error("Failed to send email for order #{$order->id}: {$e->getMessage()}");
                 }
 
+                session()->forget(['order_data', 'vnp_TxnRef']);
+
                 return redirect()->route('user.thankyou')->with([
-                    'success' => 'Thanh toán thành công!' . ($emailSent ? ' Email xác nhận đã được gửi.' : ' Nhưng không thể gửi email xác nhận.'),
-                    'order_id' => $order->id
+                    'success' => 'Thanh toán thành công! Đơn hàng của bạn đã được đặt.',
+                    'order_id' => $order->id,
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
-                Log::error('Lỗi xử lý thanh toán VNPay: ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString());
-                return redirect()->route('user.checkout')->with('error', 'Có lỗi xảy ra khi xử lý đơn hàng.');
+                Log::error("Error processing VNPay payment: {$e->getMessage()}, TxnRef: $vnp_TxnRef");
+                return redirect()->route('user.checkout')->with('error', 'Có lỗi xảy ra khi xử lý đơn hàng: ' . $e->getMessage());
             }
         } else {
-            return redirect()->route('user.checkout')->with('error', 'Thanh toán không thành công!');
+            Log::warning("VNPay payment failed, ResponseCode: $vnp_ResponseCode, TxnRef: $vnp_TxnRef");
+            return redirect()->route('user.checkout')->with('error', 'Thanh toán không thành công. Vui lòng thử lại.');
         }
-    }
-
-    public function paymentHistory()
-    {
-        $userId = Auth::id();
-        $orders = Order::where('user_id', $userId)->orderBy('created_at', 'desc')->get();
-
-        return view('user.payment.history', compact('orders'));
     }
 }

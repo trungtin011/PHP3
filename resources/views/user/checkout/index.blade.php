@@ -8,7 +8,8 @@
 
     <div class="checkout-container" style="background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-top: 20px;">
         <!-- Form for applying coupon -->
-        <form action="{{ route('user.checkout') }}" method="GET" style="margin-bottom: 20px;">
+        <form action="{{ route('user.checkout') }}" method="POST" style="margin-bottom: 20px;">
+            @csrf
             <h4 style="color: #ee4d2d; font-size: 18px; margin-bottom: 15px;">
                 <i class="fas fa-tag" style="margin-right: 8px;"></i>Mã giảm giá
             </h4>
@@ -21,24 +22,41 @@
                     {{ session('error') }}
                 </div>
             @endif
+            @if(session('success'))
+                <div class="alert alert-success" style="margin-top: 10px; padding: 10px; border-radius: 4px;">
+                    {{ session('success') }}
+                </div>
+            @endif
         </form>
 
         <!-- Form for placing the order -->
-        <form action="{{ route('user.order.place') }}" method="POST">
+        <form action="{{ route('user.order.place') }}" method="POST" id="order-form">
             @csrf
             <!-- Shipping Address -->
             <div class="shipping-info" style="border-bottom: 1px solid #eee; padding-bottom: 20px; margin-bottom: 20px;">
                 <h4 style="color: #ee4d2d; font-size: 18px; margin-bottom: 15px;">
                     <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>Địa chỉ nhận hàng
                 </h4>
-                <div class="form-group">
-                    <select name="address" id="address" class="form-control" style="border-radius: 4px; padding: 10px;" required>
-                        <option value="">Chọn địa chỉ giao hàng</option>
-                        @foreach($addresses as $address)
-                            <option value="{{ $address->address }}">{{ $address->address }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                @if($defaultAddress)
+                    @if($addresses->count() > 1)
+                        <div class="form-group">
+                            <select name="address_id" id="address_id" class="form-control" style="border-radius: 4px; padding: 10px;">
+                                <option value="{{ $defaultAddress->id }}" selected>{{ $defaultAddress->address }} (Mặc định)</option>
+                                @foreach($addresses as $address)
+                                    @if(!$address->default)
+                                        <option value="{{ $address->id }}">{{ $address->address }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                    @else
+                        <input type="hidden" name="address_id" value="{{ $defaultAddress->id }}">
+                    @endif
+                @else
+                    <div class="alert alert-warning" style="padding: 10px; border-radius: 4px;">
+                        Vui lòng thêm địa chỉ giao hàng trong <a href="{{ route('profile.edit') }}">hồ sơ của bạn</a>.
+                    </div>
+                @endif
             </div>
 
             <!-- Order Details -->
@@ -76,9 +94,8 @@
                 <div class="form-group">
                     <select name="payment_method" id="payment_method" class="form-control" style="border-radius: 4px; padding: 10px;" required>
                         <option value="cod">Thanh toán khi nhận hàng (COD)</option>
-                        <option value="bank">Thẻ ngân hàng</option>
                         <option value="vnpay">VNPay</option>
-                        <option value="momo">MoMo</option> <!-- Added MoMo option -->
+                        <option value="momo">MoMo</option>
                     </select>
                 </div>
             </div>
@@ -100,7 +117,7 @@
                         Tổng tiền hàng: <span style="color: #ee4d2d;">{{ number_format($total, 0, ',', '.') }} đ</span>
                     </div>
                     <div style="font-size: 14px; color: #757575; margin-bottom: 5px;">
-                        Phí vận chuyển: <span style="color: #ee4d2d;">{{ number_format($shippingFee, 0, ',', '.') }} đ</span>
+                        Phí vận chuyển: <span style="color: #ee4d2d;">Free shipping</span>
                     </div>
                     @if($discount > 0)
                         <div style="font-size: 14px; color: #757575; margin-bottom: 5px;">
@@ -120,21 +137,19 @@
 <script>
     document.getElementById('place-order-btn').addEventListener('click', function (e) {
         const paymentMethod = document.getElementById('payment_method').value;
+        const form = document.getElementById('order-form');
+        
         if (paymentMethod === 'vnpay' || paymentMethod === 'momo') {
             e.preventDefault();
-            const form = document.createElement('form');
-            form.method = 'POST';
             form.action = paymentMethod === 'vnpay' ? '{{ route('vnpay.payment') }}' : '{{ route('momo.payment') }}';
-            form.innerHTML = `
-                @csrf
-                <input type="hidden" name="amount" value="{{ $totalAfterDiscount }}">
-            `;
-            document.body.appendChild(form);
+            const amountInput = document.createElement('input');
+            amountInput.type = 'hidden';
+            amountInput.name = 'amount';
+            amountInput.value = '{{ $totalAfterDiscount }}';
+            form.appendChild(amountInput);
             form.submit();
         }
+        // COD sẽ submit bình thường đến route('user.order.place')
     });
 </script>
-
-<!-- Add Font Awesome for icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 @endsection

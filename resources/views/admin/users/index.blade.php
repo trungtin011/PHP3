@@ -42,8 +42,8 @@
                         <td style="padding: 15px;">{{ $user->email }}</td>
                         <td style="padding: 15px;">
                             @if($user->avatar)
-                            <img src="{{ asset('storage/' . $user->avatar) }}" alt="{{ $user->name }}"
-                                style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px; border: 1px solid #eee;">
+                            <img src="{{ $user->avatar }}" alt="{{ $user->name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px; border: 1px solid #eee;"> 
+            
                             @else
                             <span class="text-muted">Chưa có ảnh</span>
                             @endif

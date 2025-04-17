@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -11,18 +12,15 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
- 
     public function index(Request $request)
     {
         $query = Product::with(['category', 'brand']);
 
-        // Search filter
         if ($request->filled('search')) {
             $query->where('title', 'like', '%' . $request->search . '%')
                   ->orWhere('description', 'like', '%' . $request->search . '%');
         }
 
-        // Price sorting
         if ($request->filled('price_filter')) {
             if ($request->price_filter == 'low_to_high') {
                 $query->orderBy('price', 'asc');
@@ -42,9 +40,8 @@ class ProductController extends Controller
         $products = Product::where('title', 'like', '%' . $query . '%')
                            ->orWhere('description', 'like', '%' . $query . '%')
                            ->take(10)
-                           ->get(['id', 'title', 'price', 'stock', 'main_image']);
+                           ->get(['id', 'title', 'price', 'import_price', 'stock', 'main_image']);
 
-        // Transform main_image to full URL
         $products->transform(function ($product) {
             $product->main_image = $product->main_image ? Storage::url($product->main_image) : null;
             return $product;
@@ -55,7 +52,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        $categories = Category::with('children')->get(); // Include child categories
+        $categories = Category::with('children')->get();
         $brands = Brand::all();
         return view('admin.products.create', compact('categories', 'brands'));
     }
@@ -66,6 +63,7 @@ class ProductController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
+            'import_price' => 'nullable|numeric|min:0', 
             'stock' => 'required|integer|min:0',
             'status' => 'required|in:in_stock,out_of_stock',
             'category_id' => 'required|exists:categories,id',
@@ -75,21 +73,18 @@ class ProductController extends Controller
             'additional_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Generate slug if not provided
         $validatedData['slug'] = $validatedData['slug'] ?? Str::slug($validatedData['title']);
 
-        // Handle main image upload
         if ($request->hasFile('main_image')) {
             $validatedData['main_image'] = $request->file('main_image')->store('products/images', 'public');
         }
 
-        // Handle additional images upload
         if ($request->hasFile('additional_images')) {
             $additionalImages = [];
             foreach ($request->file('additional_images') as $image) {
                 $additionalImages[] = $image->store('products/images', 'public');
             }
-            $validatedData['additional_images'] = $additionalImages; // Array is cast to JSON by model
+            $validatedData['additional_images'] = $additionalImages;
         }
 
         Product::create($validatedData);
@@ -111,6 +106,7 @@ class ProductController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
+            'import_price' => 'nullable|numeric|min:0', // Thêm validate
             'stock' => 'required|integer|min:0',
             'status' => 'required|in:in_stock,out_of_stock',
             'category_id' => 'required|exists:categories,id',
@@ -122,21 +118,16 @@ class ProductController extends Controller
 
         $product = Product::findOrFail($id);
 
-        // Generate slug if not provided
         $validatedData['slug'] = $validatedData['slug'] ?? Str::slug($validatedData['title']);
 
-        // Handle main image upload
         if ($request->hasFile('main_image')) {
-            // Delete old main image if it exists
             if ($product->main_image && Storage::exists('public/' . $product->main_image)) {
                 Storage::delete('public/' . $product->main_image);
             }
             $validatedData['main_image'] = $request->file('main_image')->store('products/images', 'public');
         }
 
-        // Handle additional images upload
         if ($request->hasFile('additional_images')) {
-            // Delete old additional images if they exist
             if ($product->additional_images) {
                 foreach ($product->additional_images as $oldImage) {
                     if (Storage::exists('public/' . $oldImage)) {
@@ -148,7 +139,7 @@ class ProductController extends Controller
             foreach ($request->file('additional_images') as $image) {
                 $additionalImages[] = $image->store('products/images', 'public');
             }
-            $validatedData['additional_images'] = $additionalImages; // Array is cast to JSON by model
+            $validatedData['additional_images'] = $additionalImages;
         }
 
         $product->update($validatedData);
@@ -160,12 +151,10 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
 
-        // Delete main image
         if ($product->main_image && Storage::exists('public/' . $product->main_image)) {
             Storage::delete('public/' . $product->main_image);
         }
 
-        // Delete additional images
         if ($product->additional_images) {
             foreach ($product->additional_images as $image) {
                 if (Storage::exists('public/' . $image)) {
@@ -178,14 +167,12 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')->with('success', 'Sản phẩm đã được xóa thành công.');
     }
+
     public function import()
     {
         return view('admin.products.import');
     }
 
-    /**
-     * Xử lý file CSV/Excel để nhập hàng loạt sản phẩm
-     */
     public function importStore(Request $request)
     {
         $request->validate([
@@ -193,8 +180,7 @@ class ProductController extends Controller
         ]);
 
         try {
-            Excel::import(new ProductsImport, $request->file('file'));
-
+            Excel::import(new \App\Imports\ProductsImport, $request->file('file'));
             return redirect()->route('admin.products.index')
                            ->with('success', 'Nhập hàng loạt sản phẩm thành công.');
         } catch (\Exception $e) {

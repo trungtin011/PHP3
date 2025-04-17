@@ -228,7 +228,8 @@
                                                     <tr class="border-b border-gray-100 last:border-0">
                                                         <td class="py-3 px-4 flex items-center gap-3">
                                                             @if($item->product_image)
-                                                                <img src="{{ $item->product_image }}" alt="{{ $item->product_name }}" class="w-10 h-10 rounded object-cover">
+                                                            
+                                                                <img src="{{ asset('storage/' . $item->product_image) }}" alt="{{ $item->product_name }}" class="w-10 h-10 rounded object-cover">
                                                             @else
                                                                 <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
                                                                     <i class="fa-solid fa-image text-gray-400"></i>

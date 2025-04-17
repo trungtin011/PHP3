@@ -36,9 +36,9 @@ class Order extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public static function createOrder($userId, $address, $paymentMethod, $cartItems, $shippingFee = 0, $discount = 0, $notes = null)
+    public static function createOrder($userId, $address, $paymentMethod, $cartItems  = 0, $discount = 0, $notes = null)
     {
-        $total = $cartItems->sum('total') + $shippingFee - $discount;
+        $total = $cartItems->sum('total') - $discount;
 
         // Lưu dữ liệu vào bảng `orders`
         $order = self::create([
@@ -46,7 +46,6 @@ class Order extends Model
             'address' => $address,
             'payment_method' => $paymentMethod,
             'total' => $total,
-            'shipping_fee' => $shippingFee,
             'discount' => $discount,
             'status' => 'pending',
             'notes' => $notes,

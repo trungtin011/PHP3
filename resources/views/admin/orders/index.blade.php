@@ -23,7 +23,7 @@
                     <tr>
                         <th style="padding: 15px;">ID</th>
                         <th style="padding: 15px;">Khách Hàng</th>
-                    
+                        <th style="padding: 15px;">Ảnh Sản Phẩm</th>
                         <th style="padding: 15px;">Tổng Tiền</th>
                         <th style="padding: 15px;">Trạng Thái</th>
                         <th style="padding: 15px;">Ngày Tạo</th>
@@ -35,6 +35,28 @@
                     <tr style="border-bottom: 1px solid #eee;">
                         <td style="padding: 15px;">{{ $order->id }}</td>
                         <td style="padding: 15px;">{{ $order->user->name }}</td>
+                        <td style="padding: 15px;">
+                            @php
+                                $firstItem = $order->items->first();
+                                $imagePath = $firstItem->product_image ?? '';
+                                if ($imagePath && !str_contains($imagePath, '/')) {
+                                    $imagePath = 'products/images/' . $imagePath;
+                                }
+                                elseif ($imagePath && str_starts_with($imagePath, 'products/') && !str_starts_with($imagePath, 'products/images/')) {
+                                    $imagePath = 'products/images/' . basename($imagePath);
+                                }
+                                $fullPath = public_path('storage/' . $imagePath);
+                            @endphp
+                            @if($firstItem && $imagePath && file_exists($fullPath))
+                                <img src="{{ asset('storage/' . $imagePath) }}" 
+                                     alt="{{ $firstItem->product_name }}" 
+                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;">
+                            @else
+                                <img src="{{ asset('images/placeholder.png') }}" 
+                                     alt="Placeholder" 
+                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;">
+                            @endif
+                        </td>
                         <td style="padding: 15px;">{{ number_format($order->total, 0, ',', '.') }} đ</td>
                         <td style="padding: 15px;">
                             @php

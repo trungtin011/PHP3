@@ -80,11 +80,27 @@
                         </div>
                         <div id="order-details-{{ $order->id }}" class="hidden mt-3 text-sm text-gray-600 transition-all duration-300">
                             <p class="font-semibold text-gray-800">Chi tiết đơn hàng:</p>
-                            <ul class="list-disc pl-4 mt-1">
+                            <ul class="mt-1 space-y-2">
                                 @foreach($order->items as $item)
-                                    <li class="py-1">
-                                        {{ $item->product_name }} - {{ $item->quantity }} x {{ number_format($item->price, 0, ',', '.') }} đ
-                                        = <span class="font-semibold text-blue-600">{{ number_format($item->total, 0, ',', '.') }} đ</span>
+                                    <li class="flex items-center gap-3 py-1">
+                                        <div class="flex-shrink-0">
+                                            @if($imagePath && file_exists($fullPath))
+                                                <img src="{{ asset('storage/' . $imagePath) }}" 
+                                                     alt="{{ $item->product_name }}" 
+                                                     class="w-12 h-12 object-cover rounded-md border border-gray-200">
+                                            @else
+                                                <img src="{{ asset('images/placeholder.png') }}" 
+                                                     alt="Placeholder" 
+                                                     class="w-12 h-12 object-cover rounded-md border border-gray-200">
+                                            @endif
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="text-gray-800">{{ $item->product_name }}</p>
+                                            <p class="text-gray-600">
+                                                {{ $item->quantity }} x {{ number_format($item->price, 0, ',', '.') }} đ
+                                                = <span class="font-semibold text-blue-600">{{ number_format($item->total, 0, ',', '.') }} đ</span>
+                                            </p>
+                                        </div>
                                     </li>
                                 @endforeach
                             </ul>
@@ -186,6 +202,3 @@
 </script>
 @endsection
 
-<!-- Font Awesome và Tailwind CSS -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
