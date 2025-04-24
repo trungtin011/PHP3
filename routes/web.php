@@ -15,6 +15,12 @@ use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\User\CodController;
+use App\Http\Controllers\User\WelcomeController;
+use App\Http\Controllers\User\AboutController;
+use App\Http\Controllers\SearchController;
+
+Route::get('/about', [AboutController::class, 'index'])->name('about');
+Route::get('/search', [SearchController::class, 'search'])->name('search');
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -34,10 +40,7 @@ Route::get('/reset-password/{token}', function (Request $request, $token) {
 
 Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
 
-Route::get('/', function () {
-    $categories = \App\Models\Category::with('children')->whereNull('parent_id')->get();
-    return view('user.welcome', compact('categories'));
-})->name('home');
+Route::get('/', [WelcomeController::class, 'index'])->name('home');
 
 Route::get('/google/redirect', [AuthController::class, 'redirectToGoogle'])->name('google.redirect');
 Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('google.callback');
@@ -45,6 +48,7 @@ Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback'])-
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/reorder/{orderId}', [ProfileController::class, 'reorder'])->name('profile.reorder');
     Route::post('/profile/cancel/{orderId}', [ProfileController::class, 'cancelOrder'])->name('profile.cancel');
     
@@ -77,6 +81,7 @@ Route::middleware(['check.role:admin'])->prefix('admin')->group(function () {
     Route::get('/products/import', [AdminProductController::class, 'import'])->name('admin.products.import');
     Route::post('/products/import', [AdminProductController::class, 'importStore'])->name('admin.products.import.store');
 
+    Route::resource('admin/products', AdminProductController::class);
 
     Route::get('/admin/products/search', [AdminProductController::class, 'search'])->name('admin.products.search');
 
@@ -130,3 +135,4 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallbac
 
 Route::get('/chat', [GeminiChatController::class, 'index'])->name('chat.index');
 Route::post('/chat/send', [GeminiChatController::class, 'send'])->name('chat.send');
+Route::get('/chat/history', [GeminiChatController::class, 'getChatHistory'])->name('chat.history');

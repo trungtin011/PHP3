@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\GeminiChatController;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,5 +25,9 @@ class AppServiceProvider extends ServiceProvider
         if (!Storage::exists('views/images')) {
             Storage::makeDirectory('views/images');
         }
+
+        view()->composer('layouts.header', function ($view) {
+            $view->with('recentChats', GeminiChatController::getRecentChats());
+        });
     }
 }

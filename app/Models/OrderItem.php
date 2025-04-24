@@ -12,15 +12,16 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_id',
+        'variant_id',
+        'product_name',
+        'product_image',
         'quantity',
         'price',
         'total',
-        'product_name',
-        'product_image',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
+        'price' => 'decimal:2', 
         'total' => 'decimal:2',
     ];
 
@@ -31,6 +32,11 @@ class OrderItem extends Model
 
     public function product()
     {
-        return $this->belongsTo(Product::class, 'product_id');
+        return $this->belongsTo(Product::class);
+    }
+
+    public function variant()
+    {
+        return $this->belongsTo(ProductVariant::class, 'variant_id');
     }
 }

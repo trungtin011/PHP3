@@ -15,7 +15,7 @@ class CategoryController extends Controller
 
     public function create()
     {
-        $categories = Category::whereNull('parent_id')->get(); // Fetch only parent categories
+        $categories = Category::whereNull('parent_id')->get(); 
         return view('admin.categories.create', compact('categories'));
     }
 
@@ -28,15 +28,17 @@ class CategoryController extends Controller
             'parent_id' => 'nullable|exists:categories,id',
         ]);
 
+        $validatedData['icon'] = $validatedData['icon'] ?? null; 
+
         Category::create($validatedData);
 
-        return redirect()->route('admin.categories.index')->with('success', 'Category created successfully.');
+        return redirect()->route('admin.categories.index')->with('success', 'Danh mục được tạo thành công.');
     }
 
     public function edit($id)
     {
         $category = Category::findOrFail($id);
-        $categories = Category::whereNull('parent_id')->where('id', '!=', $id)->get(); // Exclude the current category
+        $categories = Category::whereNull('parent_id')->where('id', '!=', $id)->get(); 
         return view('admin.categories.edit', compact('category', 'categories'));
     }
 
@@ -49,10 +51,12 @@ class CategoryController extends Controller
             'parent_id' => 'nullable|exists:categories,id',
         ]);
 
+        $validatedData['icon'] = $validatedData['icon'] ?? null; 
+
         $category = Category::findOrFail($id);
         $category->update($validatedData);
 
-        return redirect()->route('admin.categories.index')->with('success', 'Category updated successfully.');
+        return redirect()->route('admin.categories.index')->with('success', 'Đã cập nhật danh mục thành công.');
     }
 
     public function destroy($id)
@@ -60,7 +64,7 @@ class CategoryController extends Controller
         $category = Category::findOrFail($id);
         $category->delete();
 
-        return redirect()->route('admin.categories.index')->with('success', 'Category deleted successfully.');
+        return redirect()->route('admin.categories.index')->with('success', 'Đã xóa danh mục thành công.');
     }
 
     public function showHierarchy()

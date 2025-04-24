@@ -19,11 +19,11 @@ class Coupon extends Model
     ];
 
     protected $casts = [
-        'expires_at' => 'datetime',
+        'expires_at' => 'datetime', // Ensure expires_at is treated as a datetime
     ];
 
     public function isValid()
     {
-        return $this->expires_at->isFuture() && $this->used_count < $this->usage_limit;
+        return $this->used_count < $this->usage_limit && (!$this->expires_at || $this->expires_at->isFuture());
     }
 }

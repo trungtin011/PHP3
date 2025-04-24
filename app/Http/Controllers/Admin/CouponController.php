@@ -10,7 +10,7 @@ class CouponController extends Controller
 {
     public function index()
     {
-        $coupons = Coupon::paginate(10); // Use pagination instead of retrieving all records
+        $coupons = Coupon::paginate(10);
         return view('admin.coupons.index', compact('coupons'));
     }
 
@@ -31,7 +31,7 @@ class CouponController extends Controller
 
         Coupon::create($request->all());
 
-        return redirect()->route('coupons.index')->with('success', 'Coupon created successfully.');
+        return redirect()->route('coupons.index')->with('success', 'Phiếu giảm giá được tạo thành công.');
     }
 
     public function edit(Coupon $coupon)
@@ -51,13 +51,13 @@ class CouponController extends Controller
 
         $coupon->update($request->all());
 
-        return redirect()->route('coupons.index')->with('success', 'Coupon updated successfully.');
+        return redirect()->route('coupons.index')->with('success', 'Phiếu giảm giá đã được cập nhật thành công.');
     }
 
     public function destroy(Coupon $coupon)
     {
         $coupon->delete();
 
-        return redirect()->route('coupons.index')->with('success', 'Coupon deleted successfully.');
+        return redirect()->route('coupons.index')->with('success', 'Đã xóa phiếu giảm giá thành công.');
     }
 }

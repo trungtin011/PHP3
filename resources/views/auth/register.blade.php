@@ -22,11 +22,6 @@
             </div>
 
             <div class="mb-6">
-                <label for="avatar" class="block text-lg text-gray-700 mb-2">Ảnh đại diện (URL)</label>
-                <input type="url" class="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent text-gray-800" id="avatar" name="avatar" placeholder="Nhập URL ảnh đại diện">
-            </div>
-
-            <div class="mb-6">
                 <label for="password" class="block text-lg text-gray-700 mb-2">Mật khẩu</label>
                 <input type="password" class="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent text-gray-800" id="password" name="password" required placeholder="Nhập mật khẩu">
             </div>

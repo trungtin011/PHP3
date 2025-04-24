@@ -15,7 +15,7 @@
             </h4>
             <div style="display: flex; align-items: center;">
                 <input type="text" name="coupon_code" class="form-control" placeholder="Nhập mã giảm giá" style="border-radius: 4px; padding: 10px; margin-right: 10px;" value="{{ request('coupon_code') }}">
-                <button type="submit" class="btn" style="background-color: #ee4d2d; color: white; padding: 10px 20px; border-radius: 4px;">Áp dụng</button>
+                <button type="submit" class="btn" style="background-color: #ee4d2d; color: white; padding: 0px 40px; border-radius: 4px;">Áp dụng</button>
             </div>
             @if(session('error'))
                 <div class="alert alert-danger" style="margin-top: 10px; padding: 10px; border-radius: 4px;">
@@ -37,26 +37,15 @@
                 <h4 style="color: #ee4d2d; font-size: 18px; margin-bottom: 15px;">
                     <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>Địa chỉ nhận hàng
                 </h4>
-                @if($defaultAddress)
-                    @if($addresses->count() > 1)
-                        <div class="form-group">
-                            <select name="address_id" id="address_id" class="form-control" style="border-radius: 4px; padding: 10px;">
-                                <option value="{{ $defaultAddress->id }}" selected>{{ $defaultAddress->address }} (Mặc định)</option>
-                                @foreach($addresses as $address)
-                                    @if(!$address->default)
-                                        <option value="{{ $address->id }}">{{ $address->address }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
-                        </div>
-                    @else
-                        <input type="hidden" name="address_id" value="{{ $defaultAddress->id }}">
-                    @endif
-                @else
-                    <div class="alert alert-warning" style="padding: 10px; border-radius: 4px;">
-                        Vui lòng thêm địa chỉ giao hàng trong <a href="{{ route('profile.edit') }}">hồ sơ của bạn</a>.
-                    </div>
-                @endif
+                <div class="form-group">
+                    <select name="address_id" class="form-control" required>
+                        @foreach($addresses as $address)
+                            <option value="{{ $address->id }}" {{ $defaultAddress && $defaultAddress->id == $address->id ? 'selected' : '' }}>
+                                {{ $address->address }} {{ $address->default ? '(Mặc định)' : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
             <!-- Order Details -->
@@ -109,8 +98,6 @@
                     <textarea name="notes" class="form-control" rows="4" placeholder="Thêm ghi chú cho đơn hàng của bạn..." style="border-radius: 4px; padding: 10px;"></textarea>
                 </div>
             </div>
-
-            <!-- Total and Place Order Button -->
             <div class="checkout-footer" style="background: #fff5f0; padding: 20px; border-radius: 0 0 8px 8px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="font-size: 14px; color: #757575; margin-bottom: 5px;">
@@ -149,7 +136,6 @@
             form.appendChild(amountInput);
             form.submit();
         }
-        // COD sẽ submit bình thường đến route('user.order.place')
     });
 </script>
 @endsection

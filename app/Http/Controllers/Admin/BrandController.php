@@ -26,7 +26,7 @@ class BrandController extends Controller
 
         Brand::create($validatedData);
 
-        return redirect()->route('admin.brands.index')->with('success', 'Brand created successfully.');
+        return redirect()->route('admin.brands.index')->with('success', 'Thương hiệu được tạo thành công.');
     }
 
     public function edit($id)
@@ -44,7 +44,7 @@ class BrandController extends Controller
         $brand = Brand::findOrFail($id);
         $brand->update($validatedData);
 
-        return redirect()->route('admin.brands.index')->with('success', 'Brand updated successfully.');
+        return redirect()->route('admin.brands.index')->with('success', 'Thương hiệu đã được cập nhật thành công.');
     }
 
     public function destroy($id)
@@ -52,6 +52,6 @@ class BrandController extends Controller
         $brand = Brand::findOrFail($id);
         $brand->delete();
 
-        return redirect()->route('admin.brands.index')->with('success', 'Brand deleted successfully.');
+        return redirect()->route('admin.brands.index')->with('success', 'Đã xóa thương hiệu thành công.');
     }
 }

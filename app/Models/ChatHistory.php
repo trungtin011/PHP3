@@ -1,15 +1,17 @@
 <?php
-
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Address extends Model
+class ChatHistory extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id',
-        'address',
-        'default', 
+        'message',
+        'reply',
     ];
 
     public function user()

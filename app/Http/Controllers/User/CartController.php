@@ -14,42 +14,44 @@ class CartController extends Controller
 {
     public function index()
     {
-        $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
+        $cartItems = Cart::with('product', 'variant')->where('user_id', Auth::id())->get();
         return view('user.cart.index', compact('cartItems'));
     }
 
     public function add(Request $request, $productId)
     {
         $product = Product::findOrFail($productId);
+        $variantId = $request->input('variant_id');
+        $variant = $product->variants()->find($variantId);
 
-        if (is_null($product->title) || is_null($product->main_image)) {
-            Log::error("Product ID {$productId} has null title or main_image: title={$product->title}, main_image={$product->main_image}");
-            return redirect()->back()->with('error', 'Sản phẩm không hợp lệ do thiếu thông tin tên hoặc hình ảnh.');
+        if (!$variant) {
+            return redirect()->back()->with('error', 'Vui lòng chọn một biến thể hợp lệ.');
         }
 
         $cartItem = Cart::where('user_id', Auth::id())
                         ->where('product_id', $productId)
+                        ->where('variant_id', $variantId)
                         ->first();
 
         if ($cartItem) {
-            if ($cartItem->quantity + 1 > $product->stock) {
+            if ($cartItem->quantity + 1 > $variant->stock) {
                 return redirect()->route('user.cart.index')->with('error', 'Số lượng sản phẩm vượt quá tồn kho.');
             }
             $cartItem->increment('quantity');
-            $cartItem->update(['total' => $cartItem->quantity * $product->price]);
+            $cartItem->update(['total' => $cartItem->quantity * $variant->price]);
         } else {
-            if ($product->stock < 1) {
+            if ($variant->stock < 1) {
                 return redirect()->route('user.cart.index')->with('error', 'Sản phẩm đã hết hàng.');
             }
             Cart::create([
                 'user_id' => Auth::id(),
                 'product_id' => $productId,
-                'product_name' => $product->title,
-                'product_image' => $product->main_image,
-                'product_s_cart_item_sku' => $product->sku ?? null,
+                'variant_id' => $variantId,
+                'product_name' => $product->title . ' (' . $variant->name . ': ' . $variant->value . ')',
+                'product_image' => $variant->image ?? $product->main_image, // Sử dụng hình ảnh biến thể nếu có
                 'quantity' => 1,
-                'price' => $product->price,
-                'total' => $product->price,
+                'price' => $variant->price,
+                'total' => $variant->price,
             ]);
         }
 
@@ -71,8 +73,13 @@ class CartController extends Controller
     protected function updateCartItem(Cart $cartItem, $quantity, $isAjax = false)
     {
         $product = $cartItem->product;
+        $variant = $cartItem->variant; // Lấy biến thể nếu có
 
-        if ($quantity > $product->stock) {
+        // Sử dụng tồn kho và giá của biến thể nếu có, nếu không thì dùng của sản phẩm
+        $stock = $variant ? $variant->stock : $product->stock;
+        $price = $variant ? $variant->price : $product->price;
+
+        if ($quantity > $stock) {
             $error = 'Số lượng sản phẩm vượt quá tồn kho.';
             return $isAjax
                 ? response()->json(['error' => $error], 400)
@@ -81,7 +88,7 @@ class CartController extends Controller
 
         $cartItem->update([
             'quantity' => $quantity,
-            'total' => $quantity * $product->price,
+            'total' => $quantity * $price,
         ]);
 
         $successMessage = 'Giỏ hàng đã được cập nhật.';
@@ -97,35 +104,29 @@ class CartController extends Controller
     {
         $cartItem = Cart::findOrFail($cartId);
         $cartItem->delete();
-
-        return redirect()->route('user.cart.index')->with('success', 'Sản phẩm đã được xóa khỏi giỏ hàng.');
+    
+        return response()->json([
+            'success' => true,
+            'message' => 'Sản phẩm đã được xóa khỏi giỏ hàng.'
+        ]);
     }
 
     public function checkout(Request $request)
     {
-        $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
+        $cartItems = Cart::with('product', 'variant')->where('user_id', Auth::id())->get();
         if ($cartItems->isEmpty()) {
             return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
         $addresses = Auth::user()->addresses;
         $defaultAddress = $addresses->where('default', true)->first();
-        if (!$defaultAddress) {
-            return redirect()->route('profile.edit')->with('error', 'Vui lòng thiết lập địa chỉ mặc định trước khi thanh toán.');
-        }
 
         $total = $cartItems->sum('total');
         $discount = 0;
-        $coupon = null;
         $couponCode = null;
 
         if ($request->isMethod('post') && $request->has('coupon_code')) {
             $couponCodeInput = trim($request->input('coupon_code'));
-            if (empty($couponCodeInput)) {
-                session()->forget('applied_coupon');
-                return redirect()->route('user.checkout')->with('error', 'Vui lòng nhập mã giảm giá.');
-            }
-
             $coupon = Coupon::where('code', $couponCodeInput)->first();
             if ($coupon && $coupon->isValid()) {
                 $discount = $coupon->discount_type === 'percentage'
@@ -152,41 +153,40 @@ class CartController extends Controller
             'totalAfterDiscount',
             'addresses',
             'defaultAddress',
-            'coupon',
             'couponCode'
         ));
     }
 
     public function placeOrder(Request $request)
     {
-        $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
+        $cartItems = Cart::with('product', 'variant')->where('user_id', Auth::id())->get();
         if ($cartItems->isEmpty()) {
             return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
         foreach ($cartItems as $item) {
-            if (!$item->product || $item->product->stock < $item->quantity) {
+            $stock = $item->variant ? $item->variant->stock : $item->product->stock;
+            if (!$item->product || $stock < $item->quantity) {
                 return redirect()->route('user.checkout')->with('error', "Sản phẩm {$item->product_name} không đủ số lượng trong kho.");
             }
         }
 
-        $addressId = $request->input('address_id');
-        if (!$addressId) {
-            Log::warning("No address_id provided in request");
-            return redirect()->route('user.checkout')->with('error', 'Vui lòng chọn địa chỉ giao hàng.');
-        }
+        $request->validate([
+            'address_id' => 'required|exists:addresses,id',
+            'payment_method' => 'required|in:cod,momo,vnpay',
+        ]);
 
-        $address = Address::where('user_id', Auth::id())->where('id', $addressId)->first();
+        $address = Address::where('user_id', Auth::id())->where('id', $request->address_id)->first();
         if (!$address) {
-            Log::warning("Invalid address_id: $addressId");
             return redirect()->route('user.checkout')->with('error', 'Địa chỉ giao hàng không hợp lệ.');
         }
 
         $total = $cartItems->sum('total');
         $discount = 0;
         $couponCode = null;
+
         if (session('applied_coupon')) {
-            $coupon = Coupon::where('code', session('applied_coupon.code'))->first();
+            $coupon = Coupon::where('code', session('applied_coupon')['code'])->first();
             if ($coupon && $coupon->isValid()) {
                 $discount = $coupon->discount_type === 'percentage'
                     ? $total * ($coupon->discount_value / 100)
@@ -203,11 +203,11 @@ class CartController extends Controller
         $orderData = [
             'user_id' => Auth::id(),
             'address' => $address->address,
-            'address_id' => $address->id,
-            'payment_method' => $request->input('payment_method', 'cod'),
+            'payment_method' => $request->payment_method,
             'cart_items' => $cartItems->map(function ($item) {
                 return [
                     'product_id' => $item->product_id,
+                    'variant_id' => $item->variant_id ?? null,
                     'product_name' => $item->product_name,
                     'product_image' => $item->product_image,
                     'quantity' => $item->quantity,
@@ -225,8 +225,7 @@ class CartController extends Controller
         session(['order_data' => $orderData]);
         Log::info("Prepared order_data for payment: ", $orderData);
 
-        $paymentMethod = $orderData['payment_method'];
-        switch ($paymentMethod) {
+        switch ($request->payment_method) {
             case 'cod':
                 return redirect()->route('user.order.place');
             case 'momo':

@@ -26,7 +26,8 @@
         </div>
     @else
         <div class="cart-container" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-top: 20px;">
-            <form id="cart-form" action="{{ route('user.checkout') }}" method="GET">
+            <form id="cart-form" action="{{ route('user.checkout') }}" method="POST">
+                @csrf
                 <table class="table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
                     <thead style="background: #fff5f0; color: #555;">
                         <tr>
@@ -42,7 +43,7 @@
                     </thead>
                     <tbody>
                         @foreach($cartItems as $item)
-                            <tr style="border-bottom: 1px solid #f5f5f5;">
+                            <tr style="border-bottom: 1px solid #f5f5f5;" data-cart-id="{{ $item->id }}">
                                 <td style="padding: 15px; vertical-align: middle;">
                                     <input type="checkbox" name="selected_items[]" value="{{ $item->id }}" class="select-item" style="cursor: pointer;">
                                 </td>
@@ -57,11 +58,7 @@
                                 </td>
                                 <td class="total-price" style="padding: 15px; text-align: right; color: #ee4d2d; font-weight: bold;" data-total="{{ $item->total }}">{{ number_format($item->total, 0, ',', '.') }} đ</td>
                                 <td style="padding: 15px; text-align: center;">
-                                    <form action="{{ route('user.cart.remove', $item->id) }}" method="POST" style="display: inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-link" style="color: #ee4d2d; text-decoration: none; font-size: 14px;">Xóa</button>
-                                    </form>
+                                    <button type="button" class="btn btn-link remove-item" data-cart-id="{{ $item->id }}" style="color: #ee4d2d; text-decoration: none; font-size: 14px;">Xóa</button>
                                 </td>
                             </tr>
                         @endforeach
@@ -90,6 +87,7 @@
         const selectAll = document.getElementById('select-all');
         const selectAllFooter = document.getElementById('select-all-footer');
         const selectItems = document.querySelectorAll('.select-item');
+        const removeButtons = document.querySelectorAll('.remove-item');
         const totalSumElement = document.getElementById('total-sum');
         const selectedCountElement = document.getElementById('selected-count');
 
@@ -123,6 +121,36 @@
             });
         });
 
+        // Xóa sản phẩm
+        removeButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const cartId = this.dataset.cartId;
+
+                if (confirm('Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?')) {
+                    fetch(`{{ url('/cart/remove') }}/${cartId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.querySelector(`tr[data-cart-id="${cartId}"]`).remove();
+                            updateTotal();
+                            if (document.querySelectorAll('.select-item').length === 0) {
+                                window.location.reload(); // Tải lại trang nếu giỏ hàng trống
+                            }
+                        } else {
+                            alert(data.error || 'Xóa sản phẩm thất bại.');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                }
+            });
+        });
+
         // Chọn tất cả
         function toggleSelectAll() {
             const isChecked = this.checked;
@@ -149,6 +177,9 @@
         }
 
         selectItems.forEach(item => item.addEventListener('change', updateTotal));
+
+        // Cập nhật tổng ban đầu
+        updateTotal();
     });
 </script>
 @endsection

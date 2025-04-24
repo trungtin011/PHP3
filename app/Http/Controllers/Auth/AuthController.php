@@ -35,7 +35,7 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
+            'email' => 'Thông tin đăng nhập được cung cấp không khớp với hồ sơ của chúng tôi.',
         ]);
     }
 
@@ -59,7 +59,7 @@ class AuthController extends Controller
             'role' => 'user',
         ]);
 
-        return redirect()->route('login')->with('success', 'Registration successful. Please log in.');
+        return redirect()->route('login')->with('success', 'Đăng ký thành công. Vui lòng đăng nhập.');
     }
 
     public function logout(Request $request)

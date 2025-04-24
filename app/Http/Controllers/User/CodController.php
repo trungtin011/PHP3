@@ -17,25 +17,28 @@ class CodController extends Controller
 {
     public function placeOrder(Request $request)
     {
-        if (!Auth::check()) {
-            return redirect()->route('login')->with('error', 'Bạn cần đăng nhập để thanh toán.');
-        }
+        // Validate request
+        $request->validate([
+            'address_id' => 'required|exists:addresses,id', // Thêm kiểm tra address_id
+            'notes' => 'nullable|string|max:500',
+        ]);
 
-        $addressId = $request->input('address_id');
-        $notes = $request->input('notes');
-        $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
-
+        // Lấy giỏ hàng
+        $cartItems = Cart::with('product', 'variant')->where('user_id', Auth::id())->get();
         if ($cartItems->isEmpty()) {
             return redirect()->route('user.cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
-        $address = Address::where('user_id', Auth::id())->where('id', $addressId)->first();
+        // Kiểm tra địa chỉ
+        $address = Address::where('user_id', Auth::id())->where('id', $request->address_id)->first();
         if (!$address) {
             return redirect()->route('user.checkout')->with('error', 'Địa chỉ giao hàng không hợp lệ.');
         }
 
+        // Kiểm tra tồn kho
         foreach ($cartItems as $item) {
-            if (!$item->product || $item->product->stock < $item->quantity) {
+            $stock = $item->variant ? $item->variant->stock : $item->product->stock;
+            if (!$item->product || $stock < $item->quantity) {
                 return redirect()->route('user.checkout')->with('error', "Sản phẩm {$item->product_name} không đủ số lượng trong kho.");
             }
         }
@@ -43,56 +46,80 @@ class CodController extends Controller
         try {
             DB::beginTransaction();
 
-            $cartItemsCollection = collect($cartItems)->map(function ($item) {
-                return (object) [
+            // Tính tổng và giảm giá
+            $total = $cartItems->sum('total');
+            $discount = session('applied_coupon')['discount'] ?? 0;
+            $couponCode = session('applied_coupon')['code'] ?? null;
+            $totalAfterDiscount = $total - $discount;
+
+            // Tạo đơn hàng
+            $order = Order::create([
+                'user_id' => Auth::id(),
+                'address_id' => $request->address_id,
+                'address' => $address->address,
+                'payment_method' => 'cod',
+                'total' => $total,
+                'discount' => $discount,
+                'total_after_discount' => $totalAfterDiscount,
+                'coupon_code' => $couponCode,
+                'notes' => $request->notes,
+                'status' => 'pending',
+            ]);
+
+            // Thêm các mục đơn hàng
+            foreach ($cartItems as $item) {
+                $order->items()->create([
                     'product_id' => $item->product_id,
+                    'variant_id' => $item->variant_id ?? null,
                     'product_name' => $item->product_name,
+                    'variant_name' => $item->variant ? $item->variant->name . ': ' . $item->variant->value : null,
                     'product_image' => $item->product_image,
                     'quantity' => $item->quantity,
                     'price' => $item->price,
                     'total' => $item->total,
-                ];
-            });
+                ]);
 
-            $order = Order::createOrder(
-                Auth::id(),
-                $address->address,
-                'cod',
-                $cartItemsCollection,
-                0, // shipping_fee
-                session('applied_coupon') ? session('applied_coupon')['discount'] : 0,
-                $notes
-            );
+                // Giảm tồn kho
+                if ($item->variant) {
+                    if ($item->variant->stock < $item->quantity) {
+                        throw new \Exception("Biến thể {$item->product_name} (ID {$item->variant_id}) không đủ số lượng trong kho.");
+                    }
+                    $oldStock = $item->variant->stock;
+                    $item->variant->decrement('stock', $item->quantity);
+                    Log::info("Reduced stock for product ID {$item->product_id}, Variant ID {$item->variant_id}: from {$oldStock} to {$item->variant->stock}");
+                } else {
+                    if ($item->product->stock < $item->quantity) {
+                        throw new \Exception("Sản phẩm {$item->product_name} không đủ số lượng trong kho.");
+                    }
+                    $oldStock = $item->product->stock;
+                    $item->product->decrement('stock', $item->quantity);
+                    $item->product->status = $item->product->stock > 0 ? 'in_stock' : 'out_of_stock';
+                    $item->product->save();
+                    Log::info("Reduced stock for product ID {$item->product_id}: from {$oldStock} to {$item->product->stock}");
+                }
+            }
 
-            if (session('applied_coupon')) {
-                $coupon = Coupon::where('code', session('applied_coupon')['code'])->first();
+            // Xử lý mã giảm giá
+            if ($couponCode) {
+                $coupon = Coupon::where('code', $couponCode)->lockForUpdate()->first();
                 if ($coupon && $coupon->isValid()) {
                     if ($coupon->used_count >= $coupon->usage_limit) {
                         throw new \Exception("Mã giảm giá {$coupon->code} đã đạt giới hạn sử dụng.");
                     }
-                    $order->coupon_code = $coupon->code;
-                    $order->save();
                     $coupon->increment('used_count');
-                    Log::info("Increased used_count for coupon: {$coupon->code}");
+                    Log::info("Increased used_count for coupon: {$coupon->code}, used_count: {$coupon->used_count}");
+                } else {
+                    Log::warning("Invalid or expired coupon: {$couponCode}");
                 }
             }
 
-            foreach ($cartItems as $item) {
-                $product = Product::find($item->product_id);
-                if ($product) {
-                    $oldStock = $product->stock;
-                    $product->stock -= $item->quantity;
-                    $product->status = $product->stock > 0 ? 'in_stock' : 'out_of_stock';
-                    $product->save();
-                    Log::info("Reduced stock for product ID {$product->id}: from {$oldStock} to {$product->stock}");
-                }
-            }
-
+            // Xóa giỏ hàng và session coupon
             Cart::where('user_id', Auth::id())->delete();
             session()->forget('applied_coupon');
 
             DB::commit();
 
+            // Gửi email xác nhận
             try {
                 Mail::send('emails.order_confirmation', ['order' => $order], function ($message) use ($order) {
                     $message->to($order->user->email)->subject('Xác nhận đơn hàng #' . $order->id);
@@ -108,7 +135,7 @@ class CodController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error processing COD payment: {$e->getMessage()}");
+            Log::error('COD Order Error: ' . $e->getMessage());
             return redirect()->route('user.checkout')->with('error', 'Có lỗi xảy ra khi xử lý đơn hàng: ' . $e->getMessage());
         }
     }

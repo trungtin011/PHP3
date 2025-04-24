@@ -51,22 +51,37 @@
                 <!-- Lọc thương hiệu -->
                 <div class="mb-4">
                     <h6 class="fw-semibold mb-3" style="color: #333;">Thương hiệu</h6>
-                    <div class="overflow-auto" style="max-height: 200px;">
-                        @foreach ($brands as $brand)
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" 
-                                       type="checkbox" 
-                                       name="brand[]" 
-                                       value="{{ $brand->id }}" 
-                                       id="brand-{{ $brand->id }}"
-                                       {{ is_array(request('brand')) && in_array($brand->id, request('brand')) ? 'checked' : '' }}
-                                       onchange="this.form.submit()">
-                                <label class="form-check-label" for="brand-{{ $brand->id }}" style="font-size: 0.9rem; color: #333;">
-                                    {{ $brand->name }}
-                                </label>
-                            </div>
+                    <form method="GET" action="{{ route('products.list') }}">
+                        @foreach (request()->except('brand') as $key => $value)
+                            @if (is_array($value))
+                                @foreach ($value as $val)
+                                    <input type="hidden" name="{{ $key }}[]" value="{{ $val }}">
+                                @endforeach
+                            @else
+                                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                            @endif
                         @endforeach
-                    </div>
+                        <div class="overflow-auto" style="max-height: 200px;">
+                            @foreach ($brands as $brand)
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" 
+                                           type="checkbox" 
+                                           name="brand[]" 
+                                           value="{{ $brand->id }}" 
+                                           id="brand-{{ $brand->id }}"
+                                           {{ is_array(request('brand')) && in_array($brand->id, request('brand')) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="brand-{{ $brand->id }}" style="font-size: 0.9rem; color: #333;">
+                                        {{ $brand->name }}
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <button type="submit" 
+                                class="btn btn-sm w-100 text-white mt-3" 
+                                style="background-color: #ee4d2d; font-size: 0.9rem;">
+                            Áp dụng
+                        </button>
+                    </form>
                 </div>
 
                 <!-- Lọc giá -->
@@ -177,8 +192,14 @@
                                     <!-- Thông tin bổ sung -->
                                     <div class="d-flex justify-content-between align-items-center" style="font-size: 0.8rem; color: #666;">
                                         <span>
-                                            <i class="bi bi-star-fill text-warning"></i>
-                                            {{ $product->rating ?? '5.0' }} ({{ $product->reviews_count ?? '100' }})
+                                            @if($product->average_rating > 0)
+                                                @for ($i = 1; $i <= 5; $i++)
+                                                    <i class="bi bi-star{{ $i <= round($product->average_rating) ? '-fill text-warning' : '' }}"></i>
+                                                @endfor
+                                                <span>{{ number_format($product->average_rating, 1) }} ({{ $product->reviews->count() }})</span>
+                                            @else
+                                                <span>Chưa có đánh giá</span>
+                                            @endif
                                         </span>
                                         <span>Đã bán {{ $product->sold_count ?? '1k+' }}</span>
                                     </div>
@@ -364,7 +385,7 @@
 }
 
 .btn:hover {
-    background-color: #d43f21 !important;
+    background-color: #f26a2e !important;
 }
 
 .list-group-item:hover {
@@ -378,6 +399,10 @@
 
 .form-check-input:focus {
     box-shadow: 0 0 0 0.2rem rgba(238, 77, 45, 0.25);
+}
+
+.bi-star, .bi-star-fill {
+    font-size: 0.8rem;
 }
 </style>
 

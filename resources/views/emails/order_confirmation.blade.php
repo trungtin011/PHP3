@@ -34,7 +34,12 @@
                 <tbody>
                     @foreach ($order->items as $item)
                         <tr>
-                            <td>{{ $item->product_name }}</td>
+                            <td>
+                                {{ $item->product_name }}
+                                @if ($item->variant_id)
+                                    <br><small>Biến thể: {{ $item->variant_name }}</small>
+                                @endif
+                            </td>
                             <td>{{ $item->quantity }}</td>
                             <td>{{ number_format($item->price, 2) }} VND</td>
                             <td>{{ number_format($item->total, 2) }} VND</td>
